@@ -1,6 +1,6 @@
-import { Product, Category, Collection, Order, Customer, Coupon, DashboardStats, Products } from '@/lib/types';
+import { Product } from '@/lib/types';
 
-export const mockProducts: Product[] = [
+export const mockProducts = [
   {
     id: '1',
     title: 'Classic Oversized Hoodie',
@@ -61,13 +61,13 @@ export const mockProducts: Product[] = [
   }
 ];
 
-export const mockCategories: Category[] = [
+export const mockCategories = [
   { id: '1', name: 'Hoodies', description: 'Comfortable hoodies and sweatshirts', createdAt: '2024-01-01T00:00:00Z' },
   { id: '2', name: 'T-Shirts', description: 'Classic and trendy t-shirts', createdAt: '2024-01-01T00:00:00Z' },
   { id: '3', name: 'Caps', description: 'Stylish caps and hats', createdAt: '2024-01-01T00:00:00Z' }
 ];
 
-export const mockCollections: Collection[] = [
+export const mockCollections = [
   {
     id: '1',
     name: 'Oversized Drop',
@@ -84,7 +84,7 @@ export const mockCollections: Collection[] = [
   }
 ];
 
-export const mockOrders: Order[] = [
+export const mockOrders = [
   {
     id: 'ORD-001',
     customerId: 'CUST-001',
@@ -143,7 +143,7 @@ export const mockOrders: Order[] = [
   }
 ];
 
-export const mockCustomers: Customer[] = [
+export const mockCustomers = [
   {
     id: 'CUST-001',
     name: 'John Doe',
@@ -164,7 +164,7 @@ export const mockCustomers: Customer[] = [
   }
 ];
 
-export const mockCoupons: Coupon[] = [
+export const mockCoupons = [
   {
     id: '1',
     code: 'WELCOME10',
@@ -189,7 +189,7 @@ export const mockCoupons: Coupon[] = [
   }
 ];
 
-export const mockDashboardStats: DashboardStats = {
+export const mockDashboardStats= {
   todayOrders: 8,
   monthlyOrders: 156,
   todaySales: 18750,
@@ -203,7 +203,7 @@ export const mockDashboardStats: DashboardStats = {
   ]
 };
 
-export const mockProductss: Products[] = [
+export const mockProductss= [
   {
     id: "1",
     name: "Premium Cotton T-Shirt",
