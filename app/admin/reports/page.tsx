@@ -149,7 +149,7 @@ export default function ReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {stats.popularProducts.map((product, index) => (
+              {stats.popularProducts.map((product:any, index:any) => (
                 <div key={product.id} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
