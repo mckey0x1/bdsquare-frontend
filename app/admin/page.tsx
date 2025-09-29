@@ -92,7 +92,7 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {stats.popularProducts.map((product, index) => (
+              {stats.popularProducts.map((product:any, index:any) => (
                 <div
                   key={product.id}
                   className="flex items-center justify-between">
