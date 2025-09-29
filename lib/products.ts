@@ -1,6 +1,6 @@
 import { Product } from './types';
 
-export const products: Product[] = [
+export const products= [
   {
     id: '1',
     name: 'Premium Cotton T-Shirt',
@@ -17,17 +17,7 @@ export const products: Product[] = [
     description: 'A comfortable and stylish cotton t-shirt perfect for everyday wear.',
     features: ['100% Cotton', 'Machine Washable', 'Comfortable Fit'],
     rating: 4.5,
-    reviews: [
-      {
-        id: '1',
-        userId: '1',
-        userName: 'John Doe',
-        rating: 5,
-        comment: 'Great quality and comfortable fit!',
-        date: '2024-01-15',
-        verified: true
-      }
-    ],
+
     inStock: true,
     isNew: true,
     isSale: true
