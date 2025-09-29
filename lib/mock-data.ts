@@ -1,4 +1,4 @@
-import { Product, Category, Collection, Order, Customer, Coupon, DashboardStats, Products } from '@/types';
+import { Product, Category, Collection, Order, Customer, Coupon, DashboardStats, Products } from '@/lib/types';
 
 export const mockProducts: Product[] = [
   {
