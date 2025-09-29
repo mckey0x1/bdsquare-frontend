@@ -19,7 +19,7 @@ export default function AdminDashboard() {
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-black">Dashboard</h1>
-        <p className="text-black">Welcome to your clothing store admin panel</p>
+        <p className="text-black">Welcome to your bdsqurae store admin panel</p>
       </div>
 
       {/* Stats Grid */}
