@@ -66,7 +66,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
               placeholder="Search for products, categories..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 focus:border-red-600 outline-none text-lg"
+              className="w-full px-4 py-3 border-2 border-gray-300 focus:border-red-600 outline-none text-sm sm:text-lg"
               autoFocus
             />
             <button type="submit" className="absolute right-3 top-3.5">

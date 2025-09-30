@@ -1,6 +1,6 @@
 import { Product } from './types';
 
-export const products= [
+export const products = [
   {
     id: '1',
     name: 'Premium Cotton T-Shirt',

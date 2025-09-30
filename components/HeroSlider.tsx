@@ -20,12 +20,12 @@ const heroSlides: HeroSlide[] = [
   },
   {
     id: 3,
-    image: "https://images.pexels.com/photos/8532616/pexels-photo-8532616.jpeg"
+    image: "/image/banner1.jpg"
   },
-  {
-    id: 4,
-    image: "https://images.pexels.com/photos/1598505/pexels-photo-1598505.jpeg"
-  }
+  // {
+  //   id: 4,
+  //   image: "https://images.pexels.com/photos/1598505/pexels-photo-1598505.jpeg"
+  // }
 ];
 
 export default function HeroSlider() {

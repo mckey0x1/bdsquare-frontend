@@ -118,9 +118,9 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
         </DialogDescription>
         <div className="flex min-h-[400px] bg-white overflow-hidden">
           {/* Left Side - Brand Section */}
-          <div className="flex-1 bg-black text-white p-6 flex flex-col justify-between relative">
+          <div className="flex-1 bg-black text-white p-6 hidden sm:flex flex-col justify-between relative">
             {/* Logo and Branding */}
-            <div className="space-y-4 items-center flex flex-col">
+            <div className="space-y-4 hidden items-center sm:flex flex-col">
               <div className="flex items-center space-x-3">
                 <div className="w-20 h-20 bg-gradient-to-br from-orange-400 to-red-600 flex items-center justify-center text-lg font-bold">
                   <Image

@@ -317,7 +317,7 @@ export default function Header() {
                         : "hover:bg-gray-100"
                       : "hover:bg-gray-100"
                   } transition-colors`}>
-                  <LogIn
+                  <User
                     className={`h-6 w-6 ${
                       isHomePage
                         ? !isScrolled
