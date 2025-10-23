@@ -140,7 +140,7 @@ export default function Footer() {
               <div className="flex items-center space-x-3">
                 <MapPin className="h-5 w-5 text-red-600" />
                 <span className="text-gray-300">
-                  L 111 prem nagar 2 kirari suleman nagar, Delhi 110086
+                  L 111 prem nagar 2 kirari suleman nagar, New Delhi 110086
                 </span>
               </div>
               <div className="flex items-center space-x-3">
