@@ -9,9 +9,10 @@ import { useState } from "react";
 
 interface ProductCardProps {
   product: Product;
+  imageUrl?: string;
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product, imageUrl }: ProductCardProps) {
   const { addToCart } = useCart();
   const [added, setAdded] = useState(false);
 
@@ -50,7 +51,12 @@ export default function ProductCard({ product }: ProductCardProps) {
         {/* Image */}
         <div className="relative aspect-square overflow-hidden">
           <Image
-            src={product.images[0]}
+            src={
+              imageUrl ||
+              (Array.isArray(product.images)
+                ? product.images[0]
+                : "/placeholder.jpg")
+            }
             alt={product.name}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-300"

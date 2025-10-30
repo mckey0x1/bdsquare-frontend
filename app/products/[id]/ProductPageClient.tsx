@@ -36,6 +36,7 @@ export default function ProductPageClient({ product }: ProductPageClientProps) {
 
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
+  const [selectedBatchNo, setSelectedBatchNo] = useState("")
   const [quantity, setQuantity] = useState(1);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [addedToCart, setAddedToCart] = useState(false);
@@ -69,13 +70,35 @@ export default function ProductPageClient({ product }: ProductPageClientProps) {
       return;
     }
 
-    addToCart({
-      product,
-      quantity,
-      size: selectedSize,
-      color: selectedColor,
-      stock: availableStock
-    });
+    // Check if item already exists in cart
+    const existingItem = cartItems.find(
+      (item) =>
+        item.product.id === product.id &&
+        item.size === selectedSize &&
+        item.color === selectedColor
+    );
+
+    if (existingItem) {
+      // Update quantity of existing item
+      addToCart({
+          product,
+          quantity: quantity,
+          size: selectedSize,
+          color: selectedColor,
+          stock: availableStock,
+          batchNo: selectedBatchNo
+      });
+    } else {
+      // Add new item
+      addToCart({
+        product,
+        quantity,
+        size: selectedSize,
+        color: selectedColor,
+        stock: availableStock,
+        batchNo: selectedBatchNo
+      });
+    }
 
     setAddedToCart(true);
     toast.success("Product added to cart!");
@@ -103,6 +126,45 @@ export default function ProductPageClient({ product }: ProductPageClientProps) {
       )
     : [];
 
+  // derive image URLs to show based on selectedColor (fallback to first available)
+  type ImageType = { color: string; urls: string[] } | string;
+  const imagesForSelectedColor: string[] = (() => {
+    if (!product?.images) return [];
+
+    // If images is array of { color: string, urls: string[] } or string[]
+    if (Array.isArray(product.images) && product.images.length > 0) {
+      const first = product.images[0] as ImageType;
+      // if items are objects with urls
+      if (
+        first &&
+        typeof first === "object" &&
+        'urls' in first &&
+        Array.isArray(first.urls)
+      ) {
+        // prefer images matching selectedColor
+        if (selectedColor) {
+          const match = (product.images as Array<{ color: string; urls: string[] } | string>).find(
+            (img): img is { color: string; urls: string[] } =>
+              typeof img === "object" &&
+              'color' in img &&
+              'urls' in img &&
+              img.color.toLowerCase() === selectedColor.toLowerCase()
+          );
+          if (match?.urls) {
+            return match.urls;
+          }
+        }
+        // fallback to first color's urls
+        return first.urls || [];
+      }
+      // fallback: images is an array of strings (legacy)
+      if (typeof first === "string") {
+        return product.images as string[];
+      }
+    }
+    return [];
+  })();
+
   useEffect(() => {
     if (!selectedSize) {
       const firstInStockSize = allPossibleSizes.find((size) =>
@@ -116,6 +178,24 @@ export default function ProductPageClient({ product }: ProductPageClientProps) {
       }
     }
   }, [product.variants, selectedSize]);
+
+  const availableBatchNos = product.variants
+    .filter(
+      (variant) =>
+        variant.size === selectedSize && variant.color === selectedColor
+    )
+    .map((variant) => variant.batchNo);
+    
+  useEffect(() => {
+    if (
+      selectedSize &&
+      selectedColor &&
+      availableBatchNos.length > 0 &&
+      !selectedBatchNo
+    ) {
+      setSelectedBatchNo(availableBatchNos[0]);
+    }
+  }, [selectedSize, selectedColor, availableBatchNos, selectedBatchNo]);
 
   useEffect(() => {
     if (selectedSize && availableColors.length > 0 && !selectedColor) {
@@ -148,6 +228,11 @@ export default function ProductPageClient({ product }: ProductPageClientProps) {
   };
 
   const handleBuyItem = () => {
+    if (!user) {
+      setIsLoginModalOpen(true);
+      return; // Exit early if user is not logged in
+    }
+
     if (!selectedSize || !selectedColor) {
       toast.error("Please select size and color.");
       return;
@@ -158,21 +243,38 @@ export default function ProductPageClient({ product }: ProductPageClientProps) {
       return;
     }
 
-    if (!user) {
-      setIsLoginModalOpen(true);
-    }
-
     addToCart({
       product,
       quantity,
       size: selectedSize,
       color: selectedColor,
-      stock: availableStock
+      stock: availableStock,
+      batchNo: selectedBatchNo
     });
 
     setAddedToCart(true);
     router.push("/checkout");
   };
+
+  // Update the quantity handling
+  useEffect(() => {
+    const cartItem = cartItems.find(
+      (item) =>
+        item.product.id === product.id &&
+        item.size === selectedSize &&
+        item.color === selectedColor &&
+        item.batchNo === selectedBatchNo
+    );
+
+    if (cartItem) {
+      setQuantity(cartItem.quantity);
+      setAddedToCart(true);
+    } else {
+      setQuantity(1); // Reset quantity when selecting different variant
+      setAddedToCart(false);
+    }
+  }, [selectedSize, selectedColor, cartItems, product.id]);
+
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {/* Breadcrumb */}
@@ -200,7 +302,7 @@ export default function ProductPageClient({ product }: ProductPageClientProps) {
         {/* Product Images */}
         <div>
           <ImageSlider
-            images={product.images}
+            images={imagesForSelectedColor}
             productName={product.name}
             onImageClick={(src: string) => setZoomedImage(src)}
           />

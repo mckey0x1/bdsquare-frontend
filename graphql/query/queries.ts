@@ -29,7 +29,10 @@ export const GET_PRODUCTS = gql`
       price
       originalPrice
       category
-      images
+      images {
+        color
+        urls
+      }
       features
       inStock
       isNew
@@ -42,6 +45,7 @@ export const GET_PRODUCTS = gql`
         size
         color
         stock
+        batchNo
       }
       reviews {
         id
@@ -97,6 +101,7 @@ export const GET_USER_ORDER = gql`
         name
         size
         color
+        batchNo
       }
       user {
         id
@@ -146,6 +151,7 @@ export const GET_ORDERS = gql`
         name
         size
         color
+        batchNo
         product {
           id
           name
@@ -153,7 +159,10 @@ export const GET_ORDERS = gql`
           price
           originalPrice
           category
-          images
+          images {
+            color
+            urls
+          }
           features
           inStock
           isNew

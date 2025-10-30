@@ -62,7 +62,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   CubeLoader?: boolean;
   RedCubeLoader?: boolean;
-  createProduct: (formData: any) => Promise<void>;
+  createProduct: (formData: any) => Promise<boolean>;
   UpdateProducts: (formData: any, productId: string) => Promise<void>;
   products: Product[];
   deleteProduct: (id: string) => Promise<void>;
@@ -79,7 +79,14 @@ interface AuthContextType {
   deleteAddress: (addressId: string) => Promise<void>;
   alladmins: Alladmins[];
   updateAdminAccess: (id: string, isAccess: boolean) => Promise<void>;
-  CreateOrder: (payload: any) => Promise<void>;
+  CreateOrder: (
+    payload: any
+  ) => Promise<
+    | { success: boolean; message: string; order: any }
+    | { success: boolean; message: any; order: null }
+    | null
+    | undefined
+  >;
   cancelorder: (id: string, reason: string) => Promise<void>;
   orders: any[];
   allOrders: any[];
@@ -155,7 +162,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
         // console.log(userId, data.getUserOrders)
         setOrders(data.getUserOrders);
-        console.log(data.getUserOrders);
+        // console.log(data.getUserOrders);
       } catch (err: any) {
         // console.log(err.message);
       } finally {
@@ -191,7 +198,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
         setAllAdmins(data.allAdmins);
       } catch (error) {
-        console.error("Error fetching user:", error);
+        // console.error("Error fetching user:", error);
       } finally {
         setRedCubeLoader(false); // Always stop the loader
       }
@@ -207,11 +214,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           query: GET_USER,
           fetchPolicy: "network-only"
         });
+        // console.log(data.userMe)
         setUser(data.userMe);
         setAddresses([...addresses, data.userMe.addresses]);
         // console.log("User fetched:", data.userMe);
       } catch (error) {
-        console.error("Error fetching user:", error);
+        // console.error("Error fetching user:", error);
       } finally {
         setRedCubeLoader(false); // Always stop the loader
       }
@@ -229,9 +237,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
         setallOrders(data.getOrders);
 
-        // console.log("User fetched:", data.getOrders);
+        console.log("User fetched:", data.getOrders);
       } catch (error) {
-        console.error("Error fetching user:", error);
+        console.error("Error fetching orders:", error);
       } finally {
         setRedCubeLoader(false);
       }
@@ -258,12 +266,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [randomId]);
 
   const login = async (email: string, password: string) => {
-    debugger
     setCubeLoader(true);
     const { data } = await loginMutation({ variables: { email, password } });
     setAdmin(data.login.user);
     setCubeLoader(false);
-    return data.login.user
+    return data.login.user;
   };
 
   const signup = async (email: string, password: string) => {
@@ -281,48 +288,72 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const createProduct = async (formData: any) => {
-    // 1. Upload images to Cloudinary
     setOverlayLoading(true);
-    const uploadedImageUrls: string[] = [];
-    for (const file of formData.images) {
-      const data = new FormData();
-      data.append("file", file);
-      data.append(
-        "upload_preset",
-        process.env.NEXT_PUBLIC_CLOUDINARY_PRESETS || ""
-      ); // Replace with your preset
-      data.append(
-        "cloud_name",
-        process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || ""
-      ); // Replace with your cloud name
+    const transformedImages = [];
 
-      const res = await axios.post(
-        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, // Replace with your cloud name
-        data
-      );
-      uploadedImageUrls.push(res.data.secure_url);
-    }
+    try {
+      // Handle image uploads for each color
+      for (const imageData of formData.images) {
+        const { color, urls } = imageData;
+        const uploadedUrls = [];
 
-    // 2. Send mutation with image URLs
-    await createProductMutation({
-      variables: {
-        data: {
-          ...formData,
-          price: parseFloat(formData.price),
-          originalPrice: parseFloat(formData.originalPrice),
-          images: uploadedImageUrls,
-          variants: formData.variants.map((variant: any) => ({
-            size: variant.size,
-            color: variant.color,
-            stock: parseInt(variant.stock)
-          }))
+        // Upload each file and get Cloudinary URL
+        for (const fileUrl of urls) {
+          const response = await fetch(fileUrl);
+          const blob = await response.blob();
+          const file = new File([blob], "image.jpg", { type: "image/jpeg" });
+
+          const data = new FormData();
+          data.append("file", file);
+          data.append(
+            "upload_preset",
+            process.env.NEXT_PUBLIC_CLOUDINARY_PRESETS || ""
+          );
+          data.append(
+            "cloud_name",
+            process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || ""
+          );
+
+          const uploadResponse = await axios.post(
+            `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+            data
+          );
+          uploadedUrls.push(uploadResponse.data.secure_url);
         }
-      }
-    });
 
-    setOverlayLoading(false);
-    toast.success("Product uploaded!");
-    setRandomId(generateRandomId(6)); // Trigger re-fetch of products
+        transformedImages.push({
+          color,
+          urls: uploadedUrls
+        });
+      }
+
+      // Send mutation with transformed image URLs
+      await createProductMutation({
+        variables: {
+          data: {
+            ...formData,
+            price: parseFloat(formData.price),
+            originalPrice: parseFloat(formData.originalPrice),
+            images: transformedImages,
+            variants: formData.variants.map((variant: any) => ({
+              size: variant.size,
+              color: variant.color,
+              stock: parseInt(variant.stock),
+              batchNo: variant.batchNo
+            }))
+          }
+        }
+      });
+
+      setOverlayLoading(false);
+      setRandomId(generateRandomId(6));
+      toast.success("Product created successfully!");
+      return true;
+    } catch (error) {
+      setOverlayLoading(false);
+      console.error("Error creating product:", error);
+      throw error;
+    }
   };
 
   const deleteProduct = async (id: string): Promise<void> => {
@@ -529,11 +560,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (payload.paymentMethod === "COD") {
         setOverlayLoading(false);
         setRandomId(generateRandomId(6));
-        setRandomId4(generateRandomId(6)); // Trigger re-fetch of user data
+        setRandomId4(generateRandomId(6));
         toast.success("Order placed successfully!");
-        return orderResult;
+        // Return the order result with ID
+        return {
+          success: true,
+          message: "Order placed successfully",
+          order: {
+            id: orderResult.order?.id,
+            ...orderResult.order
+          } 
+        };
       }
-      // For Razorpay payments, proceed with payment
+      // For Razorpay payments
       else if (payload.paymentMethod === "ONLINE") {
         const paymentData = orderResult.paymentData;
 
@@ -572,7 +611,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 toast.success(
                   "Order placed and payment completed successfully!"
                 );
-                return confirmResponse.data.confirmOnlineOrder;
+                // Return the confirmed order with ID
+                return {
+                  success: true,
+                  message: "Payment completed successfully",
+                  order: {
+                    id: confirmResponse.data.confirmOnlineOrder.order?.id,
+                    ...confirmResponse.data.confirmOnlineOrder.order
+                  }
+                };
               } else {
                 toast.error("Payment completed but order confirmation failed");
               }
@@ -610,7 +657,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error: any) {
       setOverlayLoading(false);
       toast.error(error.message || "Failed to place order");
-      throw error;
+      return {
+        success: false,
+        message: error.message || "Failed to place order",
+        order: null
+      };
     }
   };
 

@@ -551,9 +551,9 @@ export default function OrderTrackingPage() {
             </div>
 
             <div className="space-y-3">
-              <button className="w-full bg-red-600 text-white py-3 px-4 hover:bg-red-700 transition-colors">
+              {/* <button className="w-full bg-red-600 text-white py-3 px-4 hover:bg-red-700 transition-colors">
                 Reorder Items
-              </button>
+              </button> */}
               {/* <button className="w-full border-2 border-gray-300 py-3 px-4 hover:border-red-600 transition-colors">
                 Need Help?
               </button> */}
@@ -562,11 +562,11 @@ export default function OrderTrackingPage() {
             <div className="text-sm text-gray-600 space-y-2 mt-6">
               <p className="flex items-center space-x-2">
                 <Mail className="h-4 w-4" />
-                <span>support@clothestore.com</span>
+                <span>support@bdsquare.in</span>
               </p>
               <p className="flex items-center space-x-2">
                 <Phone className="h-4 w-4" />
-                <span>+1 (555) 123-4567</span>
+                <span>+919625962784</span>
               </p>
             </div>
           </div>

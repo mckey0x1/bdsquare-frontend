@@ -48,12 +48,22 @@ function ConfirmDeleteModal({ open, onClose, onConfirm }: any) {
   );
 }
 
+// Add this helper function to get the first image URL for a color
+const getImageForColor = (images: any[], color: string) => {
+  const colorImages = images.find((img) => img.color === color);
+  return colorImages?.urls[0] || images[0]?.urls[0] || "/placeholder.jpg";
+};
+
 export default function ProductsPage() {
   const { products, deleteProduct } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string>("");
+  // const [selectedColor, setSelectedColor] = useState<string>("");
+  const [selectedColors, setSelectedColors] = useState<Record<string, string>>(
+    {}
+  );
 
   const handleDelete = (productId: string) => {
     setSelectedProductId(productId);
@@ -148,8 +158,31 @@ export default function ProductsPage() {
             return (
               <Card key={product.id} className="overflow-hidden">
                 <div className="relative h-48">
+                  <div className="absolute top-2 left-2 z-10 flex gap-1">
+                    {colors.map((color) => (
+                      <button
+                        key={color}
+                        onClick={() =>
+                          setSelectedColors((prev) => ({
+                            ...prev,
+                            [product.id]: color
+                          }))
+                        }
+                        className={`w-6 h-6 rounded-full border-2 ${
+                          (selectedColors[product.id] || "") === color
+                            ? "border-blue-500"
+                            : "border-white"
+                        }`}
+                        style={{ backgroundColor: color.toLowerCase() }}
+                        title={color}
+                      />
+                    ))}
+                  </div>
                   <Image
-                    src={product.images[0]}
+                    src={getImageForColor(
+                      product.images,
+                      selectedColors[product.id] || colors[0]
+                    )}
                     alt={product.name}
                     fill
                     className="object-cover"
@@ -220,11 +253,19 @@ export default function ProductsPage() {
                             <th className="px-2 py-1 border">Size</th>
                             <th className="px-2 py-1 border">Color</th>
                             <th className="px-2 py-1 border">Stock</th>
+                            <th className="px-2 py-1 border">Batch</th>
                           </tr>
                         </thead>
                         <tbody>
                           {product.variants.map((variant, index) => (
-                            <tr key={index} className="border-t">
+                            <tr
+                              key={index}
+                              className={`border-t ${
+                                (selectedColors[product.id] || "") ===
+                                variant.color
+                                  ? "bg-blue-50"
+                                  : ""
+                              }`}>
                               <td className="px-2 py-1 border">
                                 {variant.size}
                               </td>
@@ -234,6 +275,9 @@ export default function ProductsPage() {
                               <td className="px-2 py-1 border">
                                 {variant.stock}
                               </td>
+                              <td className="px-2 py-1 border">
+                                {variant.batchNo}
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -242,8 +286,13 @@ export default function ProductsPage() {
                   </div>
 
                   <div className="flex gap-2 pt-2">
-                    <Link className="w-[100%]" href={`/admin/products/${product.id}/edit`}>
-                      <Button variant="outline" size="sm" className="flex-1 w-full">
+                    <Link
+                      className="w-[100%]"
+                      href={`/admin/products/${product.id}/edit`}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 w-full">
                         <Edit className="h-4 w-4 mr-1" />
                         Edit
                       </Button>

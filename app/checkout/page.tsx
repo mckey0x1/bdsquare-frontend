@@ -116,6 +116,14 @@ export default function CheckoutPage() {
     }
   ];
 
+  useEffect(() => {
+    if (!user && !RedCubeLoader) {
+      redirect("/");
+    }
+  }, [user, RedCubeLoader]);
+
+  if (RedCubeLoader) return <CubeSpinner />;
+
   if (cartItems.length === 0) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -259,13 +267,13 @@ export default function CheckoutPage() {
     setEditingAddress("");
     setShowAddressForm(false);
   };
+  console.log(cartItems)
 
   const handlePlaceOrder = async () => {
     if (!selectedAddress || !selectedPayment) {
       alert("Please select delivery address and payment method");
       return;
     }
-
 
     const selectedAddressDetails = user?.addresses?.find(
       (addr) => addr.id === selectedAddress
@@ -283,24 +291,42 @@ export default function CheckoutPage() {
         quantity: item.quantity || null,
         color: item.color || null,
         size: item.size || null,
-        name: item.product?.name || null
+        name: item.product?.name || null,
+        batchNo: item.batchNo || null
       })),
       paymentMethod: selectedPayment || null,
       shippingAddress: shippingAddressString || null,
-      name:selectedAddressDetails?.name,
-      addressType:selectedAddressDetails?.addressType,
-      area:selectedAddressDetails?.area,
-      city:selectedAddressDetails?.city,
-      state:selectedAddressDetails?.state,
-      pincode:selectedAddressDetails?.pincode,
-      mobile:selectedAddressDetails?.mobile,
+      name: selectedAddressDetails?.name,
+      addressType: selectedAddressDetails?.addressType,
+      area: selectedAddressDetails?.area,
+      city: selectedAddressDetails?.city,
+      state: selectedAddressDetails?.state,
+      pincode: selectedAddressDetails?.pincode,
+      mobile: selectedAddressDetails?.mobile,
       totalAmount: total || null,
       userId: user?.id || null
     };
 
-    await CreateOrder(payload);
+    try {
+      const response = await CreateOrder(payload);
 
-    clearCart();
+
+      // Clear the cart
+      clearCart();
+
+      // Check if order was created successfully and has an ID
+      if (response?.order?.id) {
+        // Redirect to order details page
+        router.push(`/orders/${response.order.id}`);
+      } else {
+        console.error("Order created but no ID returned");
+        // Fallback to orders page if no specific ID
+        router.push("/orders");
+      }
+    } catch (error) {
+      console.error("Error creating order:", error);
+      alert("There was an error creating your order. Please try again.");
+    }
   };
 
   const canProceedToPayment = selectedAddress !== "";
@@ -320,13 +346,6 @@ export default function CheckoutPage() {
     setShowAddressForm(!showAddressForm);
   };
 
-  // useEffect(() => {
-  //   if (!user && !RedCubeLoader) {
-  //     redirect("/");
-  //   }
-  // }, [user, RedCubeLoader]);
-
-  // if (RedCubeLoader) return <CubeSpinner />;
   return (
     <>
       {/* Razorpay Checkout script */}
@@ -747,7 +766,7 @@ export default function CheckoutPage() {
                           className="flex items-center space-x-4 border-b pb-4">
                           <div className="relative w-16 h-16 flex-shrink-0">
                             <Image
-                              src={item.product.images[0]}
+                              src={getImageForColor(item.product, item.color)} // Use the helper function here
                               alt={item.product.name}
                               fill
                               className="object-cover"
@@ -924,3 +943,16 @@ export default function CheckoutPage() {
     </>
   );
 }
+
+// Add this helper function to get the image for the selected color
+const getImageForColor = (product: any, color: string) => {
+  if (!product?.images) return "/placeholder.jpg";
+
+  // Find the exact color variant's image
+  const colorVariant = product.images.find(
+    (img: any) => img.color?.toLowerCase() === color?.toLowerCase()
+  );
+
+  // Return the first image of the selected color variant
+  return colorVariant?.urls?.[0] || "/placeholder.jpg";
+};

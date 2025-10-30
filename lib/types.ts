@@ -3,6 +3,7 @@ export interface ProductVariant {
   size: string;
   color: string;
   stock: number;
+  batchNo: string;
 }
 
 export interface Product {
@@ -43,6 +44,7 @@ export interface CartItem {
   size: string;
   color: string;
   stock: number;
+  batchNo: string;
 }
 
 export interface Address {

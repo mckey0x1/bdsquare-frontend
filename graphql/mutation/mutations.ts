@@ -37,7 +37,10 @@ export const CREATE_PRODUCT_MUTATION = gql`
       price
       originalPrice
       category
-      images
+      images {
+        color
+        urls
+      }
       features
       inStock
       isNew
@@ -50,6 +53,7 @@ export const CREATE_PRODUCT_MUTATION = gql`
         size
         color
         stock
+        batchNo
       }
     }
   }
@@ -72,7 +76,10 @@ export const UPDATE_PRODUCT_MUTATION = gql`
       price
       originalPrice
       category
-      images
+      images {
+        color
+        urls
+      }
       features
       inStock
       isNew
@@ -85,6 +92,7 @@ export const UPDATE_PRODUCT_MUTATION = gql`
         size
         color
         stock
+        batchNo
       }
     }
   }
@@ -183,11 +191,15 @@ export const CREATE_ORDER = gql`
           name
           size
           color
+          batchNo
           product {
             id
             name
             price
-            images
+            images {
+              color
+              urls
+            }
           }
         }
         user {
@@ -242,7 +254,10 @@ export const CONFIRM_ONLINE_ORDER = gql`
             id
             name
             price
-            images
+            images {
+              color
+              urls
+            }
             inStock
             soldCount
           }

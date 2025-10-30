@@ -47,7 +47,8 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         (item) =>
           item.product.id === action.payload.product.id &&
           item.size === action.payload.size &&
-          item.color === action.payload.color
+          item.color === action.payload.color &&
+          item.batchNo === action.payload.batchNo
       );
 
       if (existingItem) {
@@ -62,7 +63,8 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
           cartItems: state.cartItems.map((item) =>
             item.product.id === action.payload.product.id &&
             item.size === action.payload.size &&
-            item.color === action.payload.color
+            item.color === action.payload.color &&
+            item.batchNo === action.payload.batchNo
               ? { ...item, quantity: finalQty }
               : item
           )
@@ -126,7 +128,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [state.cartItems]);
 
-  const addToCart = (item: CartItem) => {
+  const addToCart = (item: CartItem, updateExisting: boolean = false) => {
     dispatch({ type: "ADD_TO_CART", payload: item });
   };
 

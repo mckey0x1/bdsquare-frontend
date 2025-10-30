@@ -12,6 +12,23 @@ import { useCart } from "@/context/cart-context";
 import ShowcaseSection from "@/components/showcasesection";
 import AutoSlider from "@/components/compSlider";
 
+// Helper to return a single image URL for a product (handles color-specific images)
+const getSingleImage = (product: any) => {
+  if (!product?.images) return "/placeholder.jpg";
+
+  // If images is array of { color, urls: string[] }
+  if (Array.isArray(product.images) && product.images.length > 0) {
+    const first = product.images[0];
+    if (first && typeof first === "object" && Array.isArray(first.urls)) {
+      return first.urls[0] || "/placeholder.jpg";
+    }
+    // fallback: if images is array of strings
+    if (typeof first === "string") return first;
+  }
+
+  return "/placeholder.jpg";
+};
+
 export default function Home() {
   const { products } = useAuth();
 
@@ -81,7 +98,7 @@ export default function Home() {
       </section> */}
 
       {/* New Arrivals */}
-      {newProducts.length > 0 && (
+      {/* {newProducts.length > 0 && (
         <section className="py-16 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
@@ -99,7 +116,7 @@ export default function Home() {
                   <Link href={`/products/${product.id}`}>
                     <div className="relative aspect-square overflow-hidden border border-gray-200">
                       <Image
-                        src={product.images[0]}
+                        src={getSingleImage(product)}
                         alt={product.name}
                         fill
                         className="object-cover group-hover:scale-105 transition-transform duration-300"
@@ -129,7 +146,7 @@ export default function Home() {
             </div>
           </div>
         </section>
-      )}
+      )} */}
 
       {/* Categories */}
       {/* <section className="py-16 bg-white">
@@ -189,7 +206,7 @@ export default function Home() {
                       {/* Image */}
                       <div className="relative aspect-square overflow-hidden">
                         <Image
-                          src={product.images[0]}
+                          src={getSingleImage(product)}
                           alt={product.name}
                           fill
                           className="object-cover group-hover:scale-105 transition-transform duration-300"
@@ -287,7 +304,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-      <AutoSlider/>
+      <AutoSlider />
       <ShowcaseSection />
       {/* Newsletter */}
       <AnimatedBdsquareText />

@@ -9,6 +9,23 @@ interface ProductGridProps {
   products: Product[];
 }
 
+// Helper to return a single image URL for a product (handles color-specific images)
+const getSingleImage = (product: any) => {
+  if (!product?.images) return "/placeholder.jpg";
+
+  // If images is array of { color, urls: string[] }
+  if (Array.isArray(product.images) && product.images.length > 0) {
+    const first = product.images[0];
+    if (first && typeof first === "object" && Array.isArray(first.urls)) {
+      return first.urls[0] || "/placeholder.jpg";
+    }
+    // fallback: if images is array of strings
+    if (typeof first === "string") return first;
+  }
+
+  return "/placeholder.jpg";
+};
+
 export default function ProductGrid({ products }: ProductGridProps) {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortBy, setSortBy] = useState("name-asc");
@@ -32,28 +49,27 @@ export default function ProductGrid({ products }: ProductGridProps) {
   const minPrice = Math.min(...products.map((p) => p.price));
   const maxPrice = Math.max(...products.map((p) => p.price));
 
-const filteredProducts = products.filter((product) => {
-  // ✅ Only keep if at least one variant is in stock
-  const hasStock = product.variants.some((variant) => variant.stock > 0);
-  if (!hasStock) return false;
+  const filteredProducts = products.filter((product) => {
+    // ✅ Only keep if at least one variant is in stock
+    const hasStock = product.variants.some((variant) => variant.stock > 0);
+    if (!hasStock) return false;
 
-  if (selectedCategory !== "All" && product.category !== selectedCategory)
-    return false;
+    if (selectedCategory !== "All" && product.category !== selectedCategory)
+      return false;
 
-  if (product.price < priceRange.min || product.price > priceRange.max)
-    return false;
+    if (product.price < priceRange.min || product.price > priceRange.max)
+      return false;
 
-  if (
-    selectedSizes.length > 0 &&
-    !product.variants.some(
-      (variant) => selectedSizes.includes(variant.size) && variant.stock > 0 // also check stock here
+    if (
+      selectedSizes.length > 0 &&
+      !product.variants.some(
+        (variant) => selectedSizes.includes(variant.size) && variant.stock > 0 // also check stock here
+      )
     )
-  )
-    return false;
+      return false;
 
-  return true;
-});
-
+    return true;
+  });
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     switch (sortBy) {
@@ -319,7 +335,11 @@ const filteredProducts = products.filter((product) => {
       {/* ---- Product Grid ---- */}
       <div className={`grid ${gridCols[gridView]} gap-0`}>
         {sortedProducts.map((product) => (
-          <ProductCard key={product.id} product={product} />
+          <ProductCard
+            key={product.id}
+            product={product}
+            imageUrl={getSingleImage(product)} // pass a single image URL
+          />
         ))}
       </div>
 

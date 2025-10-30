@@ -46,9 +46,9 @@ export default function AdminLoginPage() {
 
 
 
-    if (CubeLoader) {
-      return <CubeSpinner />;
-    }
+    // if (CubeLoader) {
+    //   return <CubeSpinner />;
+    // }
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-6">

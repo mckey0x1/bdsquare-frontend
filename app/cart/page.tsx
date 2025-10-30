@@ -8,6 +8,25 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { redirect, useRouter } from "next/navigation";
 
+const getImageForColor = (product: any, color: string) => {
+  if (!product?.images) return "/placeholder.jpg";
+
+  // Find the exact color variant's image
+  if (Array.isArray(product.images)) {
+    const colorVariant = product.images.find(
+      (img: any) => img.color?.toLowerCase() === color?.toLowerCase()
+    );
+
+    // Return the first image of the selected color variant
+    if (colorVariant?.urls?.[0]) {
+      return colorVariant.urls[0];
+    }
+  }
+
+  // If no matching color image found, return placeholder
+  return "/placeholder.jpg";
+};
+
 export default function CartPage() {
   const { cartItems, updateQuantity, removeFromCart, clearCart } = useCart();
   const { user, isLoginModalOpen, setIsLoginModalOpen } = useAuth();
@@ -81,10 +100,11 @@ export default function CartPage() {
                   <div className="flex items-center space-x-4">
                     <div className="relative w-10 h-10 sm:w-24 sm:h-24 flex-shrink-0">
                       <Image
-                        src={item.product.images[0]}
-                        alt={item.product.name}
+                        src={getImageForColor(item.product, item.color)}
+                        alt={`${item.product.name} - ${item.color}`}
                         fill
                         className="object-cover"
+                        priority // Add priority to load cart images first
                       />
                     </div>
 
@@ -172,9 +192,7 @@ export default function CartPage() {
               <div className="flex justify-between">
                 <span>Shipping</span>
                 <span>
-                  {shipping === 0
-                    ? "FREE"
-                    : `₹${shipping.toFixed(2)}`}
+                  {shipping === 0 ? "FREE" : `₹${shipping.toFixed(2)}`}
                 </span>
               </div>
               <div className="flex justify-between">

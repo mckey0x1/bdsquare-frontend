@@ -37,14 +37,31 @@ export default function OrdersPage() {
   const [trackingNumber, setTrackingNumber] = useState("");
   const [statusNote, setStatusNote] = useState("");
 
-  const filteredOrders = allOrders.filter((order) => {
+  // filter then sort by createdAt descending so latest orders appear first
+const filteredOrders = (allOrders || [])
+  .filter((order) => {
     const matchesSearch =
       order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customerEmail.toLowerCase().includes(searchTerm.toLowerCase());
+      order.daddress?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.daddress?.mobile?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus =
       statusFilter === "all" || order.status === statusFilter;
     return matchesSearch && matchesStatus;
+  })
+  .sort((a, b) => {
+    // Safely parse dates and handle invalid dates
+    let dateA = new Date(a.createdAt).getTime();
+    let dateB = new Date(b.createdAt).getTime();
+
+    // If invalid dates, try parsing as timestamps
+    if (isNaN(dateA)) dateA = Number(a.createdAt);
+    if (isNaN(dateB)) dateB = Number(b.createdAt);
+
+    // Fallback to 0 if still invalid
+    if (isNaN(dateA)) dateA = 0;
+    if (isNaN(dateB)) dateB = 0;
+
+    return dateB - dateA; // Sort descending (newest first)
   });
 
   const getStatusVariant = (status: string) => {
@@ -119,7 +136,7 @@ export default function OrdersPage() {
         </head>
         <body>
           <div class="header">
-            <div class="company-name">ClothingStore</div>
+            <div class="company-name">BDsquare</div>
             <div class="invoice-title">INVOICE</div>
           </div>
           
@@ -151,7 +168,7 @@ export default function OrdersPage() {
                 <div class="info-item"><span class="label">Name:</span> ${
                   order.daddress.name
                 }</div>
-                <div class="info-item"><span class="label">Email:</span> ${
+                <div class="info-item"><span class="label">Phone:</span> ${
                   order.daddress.mobile
                 }</div>
               </div>
@@ -203,7 +220,7 @@ export default function OrdersPage() {
 
           <div class="footer">
             <p>Thank you for your business!</p>
-            <p>For any queries, contact us at support@clothingstore.com</p>
+            <p>For any queries, contact us at support@bdsquare.in</p>
           </div>
         </body>
       </html>
@@ -289,16 +306,14 @@ export default function OrdersPage() {
                       order.status.slice(1)}
                   </Badge>
                   <Badge
-                    variant={getPaymentStatusVariant(order.payment.status)}>
-                    Payment {order.payment.status}
+                    variant={getPaymentStatusVariant(order.payment?.status)}>
+                    Payment {order.payment?.status}
                   </Badge>
                   {(order.AWB || order.ShippingMsg) && (
-                    <Badge
-                      variant="destructive">
+                    <Badge variant="destructive">
                       AWB {order.AWB || order.ShippingMsg || "N/A"}
                     </Badge>
                   )}
-                  
                 </div>
               </div>
 
@@ -314,7 +329,7 @@ export default function OrdersPage() {
                           <p className="font-medium">{item.name}</p>
                           <p className="text-sm text-gray-600">
                             Size: {item.size} • Color: {item.color} • Qty:{" "}
-                            {item.quantity}
+                                {item.quantity} • Batch No: {item.batchNo}      
                           </p>
                         </div>
                         <span className="font-semibold">
@@ -472,14 +487,13 @@ export default function OrdersPage() {
                     </p>
                     <p>
                       <span className="font-medium">Date:</span>{" "}
-                      {new Date(Number(selectedOrder.createdAt)).toLocaleDateString(
-                        "en-IN",
-                        {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric"
-                        }
-                      )}
+                      {new Date(
+                        Number(selectedOrder.createdAt)
+                      ).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric"
+                      })}
                     </p>
                     <p>
                       <span className="font-medium">Status:</span>
