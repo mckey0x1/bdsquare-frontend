@@ -37,7 +37,8 @@ export default function ProductCard({ product, imageUrl }: ProductCardProps) {
       quantity: 1,
       size: defaultVariant.size,
       color: defaultVariant.color,
-      stock: defaultVariant.stock
+      stock: defaultVariant.stock,
+      batchNo: defaultVariant.batchNo
     });
 
     setAdded(true);
