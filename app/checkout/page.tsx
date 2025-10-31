@@ -97,9 +97,9 @@ export default function CheckoutPage() {
     (sum, item) => sum + item.product.price * item.quantity,
     0
   );
-  const shipping = subtotal > 50 ? 0 : 9.99;
+  const [shipping, setShipping] = useState<number | undefined>(undefined);
   const tax = subtotal * 0.08;
-  const total = subtotal + shipping + tax;
+  const total = subtotal + (shipping ?? 0);
 
   const paymentOptions = [
     {
@@ -121,6 +121,17 @@ export default function CheckoutPage() {
       redirect("/");
     }
   }, [user, RedCubeLoader]);
+
+  // Update delivery charges based on payment method selection
+  useEffect(() => {
+    if (selectedPayment === "COD") {
+      setShipping(49);
+    } else if (selectedPayment === "ONLINE") {
+      setShipping(0);
+    } else {
+      setShipping(undefined);
+    }
+  }, [selectedPayment]);
 
   if (RedCubeLoader) return <CubeSpinner />;
 
@@ -267,7 +278,7 @@ export default function CheckoutPage() {
     setEditingAddress("");
     setShowAddressForm(false);
   };
-  console.log(cartItems)
+  console.log(cartItems);
 
   const handlePlaceOrder = async () => {
     if (!selectedAddress || !selectedPayment) {
@@ -309,7 +320,6 @@ export default function CheckoutPage() {
 
     try {
       const response = await CreateOrder(payload);
-
 
       // Clear the cart
       clearCart();
@@ -892,16 +902,21 @@ export default function CheckoutPage() {
                 <div className="flex justify-between">
                   <span>Delivery Charges</span>
                   <span>
-                    {shipping === 0 ? "FREE" : `₹${shipping.toFixed(2)}`}
+                    {selectedPayment === ""
+                      ? "FREE"
+                      : shipping === 0
+                      ? "FREE"
+                      : `₹${shipping?.toFixed(2)}`}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Tax</span>
+                {/* <div className="flex justify-between">
+                  <span>Delivery Charges</span>
                   <span>&#8377;{tax.toFixed(2)}</span>
-                </div>
+                </div> */}
               </div>
 
               <div className="border-t-2 border-gray-300 pt-3 mb-6">
+                <div className="text-sm text-gray-600 mb-4">Delivery charges ₹49 on cash on delivery</div>
                 <div className="flex justify-between text-xl font-bold">
                   <span>Total Amount</span>
                   <span className="text-red-600">₹{total.toFixed(2)}</span>

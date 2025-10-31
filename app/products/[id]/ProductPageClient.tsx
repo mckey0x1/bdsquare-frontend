@@ -552,16 +552,16 @@ export default function ProductPageClient({ product }: ProductPageClientProps) {
           <div className="border-t pt-4 space-y-3">
             <div className="flex items-center space-x-2">
               <Truck className="h-4 w-4 text-red-600" />
-              <span className="text-xs">Free shipping on orders over ₹50</span>
+              <span className="text-xs">Free shipping on prepaid</span>
             </div>
             <div className="flex items-center space-x-2">
               <RefreshCw className="h-4 w-4 text-red-600" />
-              <span className="text-xs">30-day return policy</span>
+              <span className="text-xs">7-day return policy</span>
             </div>
-            <div className="flex items-center space-x-2">
+            {/* <div className="flex items-center space-x-2">
               <Shield className="h-4 w-4 text-red-600" />
-              <span className="text-xs">1-year warranty included</span>
-            </div>
+              <span className="text-xs"></span>
+            </div> */}
           </div>
         </div>
       </div>

@@ -47,7 +47,7 @@ export default function CartPage() {
   );
   const shipping = subtotal > 50 ? 0 : 9.99;
   const tax = subtotal * 0.08;
-  const total = subtotal + shipping + tax;
+  const total = subtotal;
 
   if (cartItems.length === 0) {
     return (
@@ -189,16 +189,16 @@ export default function CartPage() {
                 </span>
                 <span>&#8377;{subtotal.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between">
+              {/* <div className="flex justify-between">
                 <span>Shipping</span>
                 <span>
                   {shipping === 0 ? "FREE" : `₹${shipping.toFixed(2)}`}
                 </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Tax</span>
+              </div> */}
+              {/* <div className="flex justify-between">
+                <span>Delivery Charges</span>
                 <span>&#8377;{tax.toFixed(2)}</span>
-              </div>
+              </div> */}
             </div>
 
             <div className="border-t pt-3 mb-6">
@@ -207,13 +207,13 @@ export default function CartPage() {
                 <span className="text-red-600">&#8377;{total.toFixed(2)}</span>
               </div>
             </div>
-
+{/* 
             {subtotal < 50 && (
               <p className="text-sm text-gray-600 mb-4">
                 Add &#8377;{(50 - subtotal).toFixed(2)} more to get free
                 shipping!
               </p>
-            )}
+            )} */}
 
             <button
               onClick={() => {
@@ -225,8 +225,8 @@ export default function CartPage() {
 
             <div className="text-sm text-gray-600 space-y-2">
               <p>✓ Secure checkout</p>
-              <p>✓ 30-day return policy</p>
-              <p>✓ Free shipping on orders over &#8377;50</p>
+              <p>✓ 7-day return policy</p>
+              {/* <p>✓ Free shipping on orders over &#8377;50</p> */}
             </div>
           </div>
         </div>
