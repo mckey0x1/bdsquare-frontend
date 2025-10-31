@@ -237,7 +237,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
         setallOrders(data.getOrders);
 
-        console.log("User fetched:", data.getOrders);
+        // console.log("User fetched:", data.getOrders);
       } catch (error) {
         console.error("Error fetching orders:", error);
       } finally {

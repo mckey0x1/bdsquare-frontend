@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 export default function AdminAccessPanel() {
   const { admin, alladmins, updateAdminAccess } = useAuth(); // updateAdminAccess should call mutation
 
-  if (admin?.email !== "bdsquare1@gmail.com") {
+  if (admin?.email !== "mk366114@gmail.com") {
     return null; // Hide this section for non-super admins
   }
 

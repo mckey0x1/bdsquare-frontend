@@ -14,7 +14,7 @@ export default function AdminLayout({
 
   if (
     alladmins.find((k) => k.email === admin?.email)?.isAccess === false &&
-    admin?.email !== "bdsquare1@gmail.com"
+    admin?.email !== "mk366114@gmail.com"
   ) {
     logout();
     return <div>You are not authorized to login!</div>;
