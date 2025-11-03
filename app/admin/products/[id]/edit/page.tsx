@@ -35,16 +35,17 @@ const availableSizes = ["XS", "S", "M", "L", "XL", "XXL"];
 const availableColors = [
   "White",
   "Black",
-  "Gray",
-  "Navy",
+  "Off White",
+  "Orange",
+  "Royal Blue",
+  "Lavender",
   "Red",
-  "Blue",
-  "Green",
-  "Yellow",
-  "Pink",
-  "Purple",
+  "Navy Blue",
   "Brown",
-  "Orange"
+  "Yellow",
+  "Maroon",
+  "Beige",
+
 ];
 
 export default function EditProductPage() {
