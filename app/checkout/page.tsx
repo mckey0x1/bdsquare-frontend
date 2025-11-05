@@ -331,11 +331,11 @@ export default function CheckoutPage() {
       } else {
         console.error("Order created but no ID returned");
         // Fallback to orders page if no specific ID
-        router.push("/orders");
+        router.push("/checkout");
       }
     } catch (error) {
       console.error("Error creating order:", error);
-      alert("There was an error creating your order. Please try again.");
+      // alert("There was an error creating your order. Please try again.");
     }
   };
 
