@@ -44,8 +44,7 @@ const availableColors = [
   "Brown",
   "Yellow",
   "Maroon",
-  "Beige",
-
+  "Beige"
 ];
 
 export default function EditProductPage() {
@@ -62,7 +61,7 @@ export default function EditProductPage() {
     price: "",
     originalPrice: "",
     category: "",
-    images: [] as (File | string)[],
+    images: {} as { [key: string]: (File | string)[] }, // Change images to be color-specific
     features: [] as string[],
     inStock: true,
     isNew: false,
@@ -72,9 +71,10 @@ export default function EditProductPage() {
       {
         size: "",
         color: "",
-        stock: 0
+        stock: 0,
+        batchNo: "" // Add batch number field
       }
-    ] as { size: string; color: string; stock: number }[]
+    ] as { size: string; color: string; stock: number; batchNo: string }[]
   });
 
   const [newFeature, setNewFeature] = useState("");
@@ -87,6 +87,16 @@ export default function EditProductPage() {
 
       console.log(existingProduct);
 
+      // Convert existing product images to color-based structure
+      const colorBasedImages: { [key: string]: string[] } = {};
+      if (existingProduct.images && Array.isArray(existingProduct.images)) {
+        existingProduct.images.forEach((imageData: any) => {
+          if (imageData.color && Array.isArray(imageData.urls)) {
+            colorBasedImages[imageData.color] = imageData.urls;
+          }
+        });
+      }
+
       // Convert existing product data to form format
       setFormData({
         name: existingProduct.name,
@@ -94,7 +104,7 @@ export default function EditProductPage() {
         price: existingProduct.price.toString(),
         originalPrice: existingProduct.originalPrice?.toString() || "",
         category: existingProduct.category,
-        images: existingProduct.images, // These are URLs
+        images: colorBasedImages, // Color-based images
         features: existingProduct.features || [],
         inStock: existingProduct.inStock,
         isNew: existingProduct.isNew || false,
@@ -102,11 +112,16 @@ export default function EditProductPage() {
         status: existingProduct.status || "active",
         variants:
           existingProduct.variants && existingProduct.variants.length > 0
-            ? existingProduct.variants
-            : [{ size: "", color: "", stock: 0 }]
+            ? existingProduct.variants.map((v: any) => ({
+                size: v.size,
+                color: v.color,
+                stock: v.stock,
+                batchNo: v.batchNo || ""
+              }))
+            : [{ size: "", color: "", stock: 0, batchNo: "" }]
       });
     }
-  }, [products]);
+  }, [products, productId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,12 +137,22 @@ export default function EditProductPage() {
       return;
     }
 
+    // Transform images data to required format
+    const transformedImages = Object.entries(formData.images).map(
+      ([color, filesOrUrls]) => ({
+        color,
+        urls: filesOrUrls.map((item) =>
+          typeof item === "string" ? item : URL.createObjectURL(item)
+        ) // Keep URLs as is, convert Files to temporary URLs
+      })
+    );
+
     try {
-      // Simulate API call to update product
       await UpdateProducts(
         {
           ...formData,
-          variants: filteredVariants
+          variants: filteredVariants,
+          images: transformedImages // Send transformed image structure
         },
         productId
       );
@@ -139,10 +164,13 @@ export default function EditProductPage() {
     }
   };
 
-  const removeImage = (index: number) => {
+  const removeImage = (color: string, index: number) => {
     setFormData({
       ...formData,
-      images: formData.images.filter((_, i) => i !== index)
+      images: {
+        ...formData.images,
+        [color]: formData.images[color].filter((_, i) => i !== index)
+      }
     });
   };
 
@@ -168,30 +196,33 @@ export default function EditProductPage() {
     !!formData.variants[formData.variants.length - 1].color &&
     formData.variants[formData.variants.length - 1].stock > 0;
 
-  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (
+    e: ChangeEvent<HTMLInputElement>,
+    color: string
+  ) => {
     if (!e.target.files) return;
     const files = Array.from(e.target.files);
-    if (formData.images.length + files.length > 8) return;
+
+    // Check if total images for this color would exceed 8
+    const currentColorImages = formData.images[color] || [];
+    if (currentColorImages.length + files.length > 8) {
+      alert(`Maximum 8 images allowed per color variant`);
+      return;
+    }
+
     setFormData({
       ...formData,
-      images: [...formData.images, ...files]
+      images: {
+        ...formData.images,
+        [color]: [...(formData.images[color] || []), ...files]
+      }
     });
-  };
-
-  const addImageUrl = () => {
-    const url = prompt("Enter image URL:");
-    if (url && url.trim() && formData.images.length < 8) {
-      setFormData({
-        ...formData,
-        images: [...formData.images, url.trim()]
-      });
-    }
   };
 
   // --- Variant Handlers ---
   const handleVariantChange = (
     idx: number,
-    field: "size" | "color" | "stock",
+    field: "size" | "color" | "stock" | "batchNo",
     value: string | number
   ) => {
     setFormData((prev) => ({
@@ -205,7 +236,10 @@ export default function EditProductPage() {
   const addVariant = () => {
     setFormData((prev) => ({
       ...prev,
-      variants: [...prev.variants, { size: "", color: "", stock: 0 }]
+      variants: [
+        ...prev.variants,
+        { size: "", color: "", stock: 0, batchNo: "" }
+      ]
     }));
   };
 
@@ -348,82 +382,74 @@ export default function EditProductPage() {
             <CardTitle>Product Images</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {formData.images.map((image, index) => (
-                <div key={index} className="relative group">
-                  <div className="aspect-square relative overflow-hidden border-2 border-black bg-white">
-                    <Image
-                      src={
-                        typeof image === "string"
-                          ? image
-                          : URL.createObjectURL(image)
-                      }
-                      alt={`Product image ${index + 1}`}
-                      fill
-                      className="object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200" />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 h-6 w-6 p-0"
-                      onClick={() => removeImage(index)}>
-                      <X className="h-3 w-3" />
-                    </Button>
+            {formData.variants.map(
+              (variant, variantIndex) =>
+                variant.color && (
+                  <div key={variantIndex} className="space-y-4">
+                    <h3 className="font-semibold">
+                      {variant.color} Variant Images
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {(formData.images[variant.color] || []).map(
+                        (fileOrUrl, index) => (
+                          <div key={index} className="relative group">
+                            <div className="aspect-square relative overflow-hidden border-2 border-black bg-white">
+                              <Image
+                                src={
+                                  typeof fileOrUrl === "string"
+                                    ? fileOrUrl
+                                    : URL.createObjectURL(fileOrUrl)
+                                }
+                                alt={`${variant.color} product image ${
+                                  index + 1
+                                }`}
+                                fill
+                                className="object-cover"
+                              />
+                              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200" />
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 h-6 w-6 p-0"
+                                onClick={() =>
+                                  removeImage(variant.color, index)
+                                }>
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                            <p className="text-xs text-center mt-1 text-gray-600">
+                              Image {index + 1}
+                            </p>
+                          </div>
+                        )
+                      )}
+                      {(!formData.images[variant.color] ||
+                        formData.images[variant.color].length < 8) && (
+                        <label className="aspect-square border-2 border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center hover:border-black hover:bg-gray-100 transition-colors duration-200 cursor-pointer">
+                          <Upload className="h-8 w-8 text-gray-400 mb-2" />
+                          <p className="text-xs text-gray-600 text-center mb-2">
+                            Add {variant.color} Image
+                          </p>
+                          <input
+                            type="file"
+                            accept="image/png, image/jpeg, image/jpg"
+                            multiple
+                            className="hidden"
+                            onChange={(e) =>
+                              handleImageChange(e, variant.color)
+                            }
+                          />
+                          <span className="text-xs text-gray-400">
+                            PNG, JPG, JPEG
+                          </span>
+                        </label>
+                      )}
+                    </div>
+                    <Separator className="my-4" />
                   </div>
-                  <p className="text-xs text-center mt-1 text-gray-600">
-                    Image {index + 1}
-                  </p>
-                </div>
-              ))}
-              {formData.images.length < 8 && (
-                <div className="aspect-square border-2 border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center hover:border-black hover:bg-gray-100 transition-colors duration-200">
-                  <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                  <p className="text-xs text-gray-600 text-center mb-2">
-                    Add Image
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    <label className="cursor-pointer">
-                      <input
-                        type="file"
-                        accept="image/png, image/jpeg, image/jpg"
-                        multiple
-                        className="hidden"
-                        onChange={handleImageChange}
-                        disabled={formData.images.length >= 8}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="text-xs px-2 py-1 h-6"
-                        onClick={() => {
-                          const fileInput = document.querySelector(
-                            'input[type="file"]'
-                          ) as HTMLInputElement | null;
-                          fileInput?.click();
-                        }}>
-                        <Plus className="h-3 w-3 mr-1" />
-                        File
-                      </Button>
-                    </label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="text-xs px-2 py-1 h-6"
-                      onClick={addImageUrl}>
-                      <Plus className="h-3 w-3 mr-1" />
-                      URL
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Maximum 8 images allowed. Recommended size: 800x800px or larger.
-            </p>
+                )
+            )}
           </CardContent>
         </Card>
 
@@ -437,15 +463,15 @@ export default function EditProductPage() {
               <div
                 key={idx}
                 className="flex flex-wrap gap-4 items-end border-b pb-4 mb-4">
-                <div>
-                  <Label>Size</Label>
+                <div className="space-y-2 flex-1">
+                  <Label>Size *</Label>
                   <Select
                     value={variant.size}
                     onValueChange={(value) =>
                       handleVariantChange(idx, "size", value)
                     }>
-                    <SelectTrigger className="w-24">
-                      <SelectValue placeholder="Size" />
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select size" />
                     </SelectTrigger>
                     <SelectContent>
                       {availableSizes.map((size) => (
@@ -456,15 +482,16 @@ export default function EditProductPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label>Color</Label>
+
+                <div className="space-y-2 flex-1">
+                  <Label>Color *</Label>
                   <Select
                     value={variant.color}
                     onValueChange={(value) =>
                       handleVariantChange(idx, "color", value)
                     }>
-                    <SelectTrigger className="w-24">
-                      <SelectValue placeholder="Color" />
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select color" />
                     </SelectTrigger>
                     <SelectContent>
                       {availableColors.map((color) => (
@@ -475,27 +502,45 @@ export default function EditProductPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label>Stock</Label>
+
+                <div className="space-y-2">
+                  <Label>Stock *</Label>
                   <Input
                     type="number"
-                    min={0}
+                    min="0"
                     value={variant.stock}
                     onChange={(e) =>
-                      handleVariantChange(idx, "stock", Number(e.target.value))
+                      handleVariantChange(
+                        idx,
+                        "stock",
+                        parseInt(e.target.value) || 0
+                      )
                     }
                     className="w-24"
                   />
                 </div>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  className="h-8"
-                  onClick={() => removeVariant(idx)}
-                  disabled={formData.variants.length === 1}>
-                  <X className="h-4 w-4" />
-                </Button>
+
+                <div className="space-y-2 flex-1">
+                  <Label>Batch No</Label>
+                  <Input
+                    type="text"
+                    value={variant.batchNo}
+                    onChange={(e) =>
+                      handleVariantChange(idx, "batchNo", e.target.value)
+                    }
+                    placeholder="Enter batch number"
+                  />
+                </div>
+
+                {formData.variants.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => removeVariant(idx)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             ))}
             <Button

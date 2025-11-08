@@ -367,31 +367,79 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Show loading
       setOverlayLoading(true);
 
-      const uploadedImageUrls: string[] = [];
+      const transformedImages = [];
 
-      for (const image of formData.images) {
-        if (typeof image === "string") {
-          // It's already a URL, keep it
-          uploadedImageUrls.push(image);
-        } else {
-          // It's a File, upload to Cloudinary
-          const data = new FormData();
-          data.append("file", image);
-          data.append(
-            "upload_preset",
-            process.env.NEXT_PUBLIC_CLOUDINARY_PRESETS || ""
-          );
-          data.append(
-            "cloud_name",
-            process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || ""
-          );
+      // Handle image uploads for each color
+      for (const imageData of formData.images) {
+        const { color, urls } = imageData;
+        const uploadedUrls = [];
 
-          const res = await axios.post(
-            `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
-            data
-          );
-          uploadedImageUrls.push(res.data.secure_url);
+        // Process each URL/file
+        for (const fileUrl of urls) {
+          // Check if it's already a URL (starts with http) or a blob URL
+          if (typeof fileUrl === "string" && fileUrl.startsWith("http")) {
+            // It's already a URL, keep it
+            uploadedUrls.push(fileUrl);
+          } else if (
+            typeof fileUrl === "string" &&
+            fileUrl.startsWith("blob:")
+          ) {
+            // It's a blob URL from a File, need to upload
+            try {
+              const response = await fetch(fileUrl);
+              const blob = await response.blob();
+              const file = new File([blob], "image.jpg", {
+                type: "image/jpeg"
+              });
+
+              const data = new FormData();
+              data.append("file", file);
+              data.append(
+                "upload_preset",
+                process.env.NEXT_PUBLIC_CLOUDINARY_PRESETS || ""
+              );
+              data.append(
+                "cloud_name",
+                process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || ""
+              );
+
+              const uploadResponse = await axios.post(
+                `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+                data
+              );
+              uploadedUrls.push(uploadResponse.data.secure_url);
+            } catch (error) {
+              console.error("Error uploading image:", error);
+            }
+          } else {
+            // It's a File object, upload directly
+            try {
+              const data = new FormData();
+              data.append("file", fileUrl);
+              data.append(
+                "upload_preset",
+                process.env.NEXT_PUBLIC_CLOUDINARY_PRESETS || ""
+              );
+              data.append(
+                "cloud_name",
+                process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || ""
+              );
+
+              const uploadResponse = await axios.post(
+                `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+                data
+              );
+              uploadedUrls.push(uploadResponse.data.secure_url);
+            } catch (error) {
+              console.error("Error uploading image:", error);
+            }
+          }
         }
+
+        transformedImages.push({
+          color,
+          urls: uploadedUrls
+        });
       }
 
       // Call your mutation or update logic here
@@ -401,12 +449,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           data: {
             ...formData,
             price: parseFloat(formData.price),
-            originalPrice: parseFloat(formData.originalPrice),
-            images: uploadedImageUrls,
+            originalPrice: parseFloat(formData.originalPrice) || 0,
+            images: transformedImages,
             variants: formData.variants.map((variant: any) => ({
               size: variant.size,
               color: variant.color,
-              stock: parseInt(variant.stock)
+              stock: parseInt(variant.stock),
+              batchNo: variant.batchNo || ""
             }))
           }
         }
@@ -569,7 +618,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           order: {
             id: orderResult.order?.id,
             ...orderResult.order
-          } 
+          }
         };
       }
       // For Razorpay payments
