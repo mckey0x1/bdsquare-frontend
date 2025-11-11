@@ -18,6 +18,7 @@ export interface Product {
   inStock: boolean;
   isNew: boolean;
   isSale: boolean;
+  isTrending: boolean;
   status: string;
   createdAt: string; // or Date
   updatedAt: string; // or Date

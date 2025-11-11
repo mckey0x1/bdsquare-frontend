@@ -41,11 +41,54 @@ export default function Home() {
   });
   const featuredProducts = filteredProducts.slice(0, 30);
   const newProducts = filteredProducts.filter((p) => p.isNew);
+  const trendingProducts = filteredProducts.filter((p) => p.isTrending);
 
   return (
     <div>
       {/* Hero Section */}
       <HeroSlider />
+
+      {/* Trending Products */}
+      {trendingProducts.length > 0 && (
+        <section className="py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                TRENDING NOW
+              </h2>
+              <p className="text-xl text-gray-600">
+                Discover our most popular products
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-0">
+              {trendingProducts.map((product) => (
+                <div key={product.id} className="group">
+                  <Link href={`/products/${product.id}`}>
+                    <div className="relative aspect-square overflow-hidden border border-gray-200">
+                      <Image
+                        src={getSingleImage(product)}
+                        alt={product.name}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute top-2 left-2">
+                        <span className="bg-red-600 text-white px-2 py-1 text-xs font-semibold">
+                          TRENDING
+                        </span>
+                      </div>
+                    </div>
+                    <div className="p-4 bg-white border-x border-b border-gray-200">
+                      <h3 className="font-semibold mb-1">{product.name}</h3>
+                      <p className="text-red-600 font-bold">₹{product.price}</p>
+                    </div>
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Horizontal Products Slider */}
       {/* <section className="py-16 bg-white">
@@ -304,8 +347,8 @@ export default function Home() {
           </div>
         </div>
       </section>
-      <AutoSlider />
-      <ShowcaseSection />
+      {/* <AutoSlider /> */}
+      {/* <ShowcaseSection /> */}
       {/* Newsletter */}
       <AnimatedBdsquareText />
       <section className="py-16 bg-black text-white">

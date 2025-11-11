@@ -313,3 +313,59 @@ export const WRITE_REVIEW = gql`
     }
   }
 `;
+
+export const CREATE_BANNER_MUTATION = gql`
+  mutation CreateBanner($data: CreateBannerInput!) {
+    createBanner(data: $data) {
+      id
+      imageUrl
+      position
+      isActive
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const UPDATE_BANNER_MUTATION = gql`
+  mutation UpdateBanner($id: ID!, $data: UpdateBannerInput!) {
+    updateBanner(id: $id, data: $data) {
+      id
+      imageUrl
+      position
+      isActive
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const DELETE_BANNER_MUTATION = gql`
+  mutation DeleteBanner($id: ID!) {
+    deleteBanner(id: $id) {
+      id
+      imageUrl
+    }
+  }
+`;
+
+export const TOGGLE_PRODUCT_TRENDING_MUTATION = gql`
+  mutation ToggleProductTrending($id: ID!, $isTrending: Boolean!) {
+    toggleProductTrending(id: $id, isTrending: $isTrending) {
+      id
+      name
+      isTrending
+      images {
+        color
+        urls
+      }
+      variants {
+        id
+        size
+        color
+        stock
+        batchNo
+      }
+    }
+  }
+`;

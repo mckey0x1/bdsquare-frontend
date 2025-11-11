@@ -37,6 +37,7 @@ export const GET_PRODUCTS = gql`
       inStock
       isNew
       isSale
+      isTrending
       status
       createdAt
       updatedAt
@@ -200,6 +201,19 @@ export const GET_ORDERS = gql`
         pincode
         mobile
       }
+    }
+  }
+`;
+
+export const GET_BANNERS = gql`
+  query GetBanners {
+    banners {
+      id
+      imageUrl
+      position
+      isActive
+      createdAt
+      updatedAt
     }
   }
 `;
