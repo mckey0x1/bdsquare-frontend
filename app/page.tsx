@@ -62,29 +62,80 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-0">
-              {trendingProducts.map((product) => (
-                <div key={product.id} className="group">
-                  <Link href={`/products/${product.id}`}>
-                    <div className="relative aspect-square overflow-hidden border border-gray-200">
-                      <Image
-                        src={getSingleImage(product)}
-                        alt={product.name}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute top-2 left-2">
-                        <span className="bg-red-600 text-white px-2 py-1 text-xs font-semibold">
-                          TRENDING
-                        </span>
+              {trendingProducts.map((product) => {
+                const availableVariants =
+                  product.variants?.filter((v) => v.stock > 0) || [];
+                const availableSizes = Array.from(
+                  new Set(availableVariants.map((variant) => variant.size))
+                );
+                return (
+                  <div key={product.id} className="group">
+                    <Link
+                      href={`/products/${product.id}`}
+                      className="group block">
+                      <div className="bg-white border border-gray-200 hover:border-red-600 transition-all duration-300">
+                        {/* Image */}
+                        <div className="relative aspect-square overflow-hidden">
+                          <Image
+                            src={getSingleImage(product)}
+                            alt={product.name}
+                            fill
+                            className="object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute top-2 left-2">
+                            <span className="bg-red-600 text-white px-2 py-1 text-xs font-semibold">
+                              TRENDING
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Product Info */}
+                        <div className="p-4">
+                          <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2">
+                            {product.name}
+                          </h3>
+                          <p className="text-sm text-gray-600 mb-2">
+                            {product.category}
+                          </p>
+
+                          {/* Price */}
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-lg font-bold text-red-600">
+                              ₹{product.price}
+                            </span>
+                            {product.originalPrice &&
+                              product.originalPrice > product.price && (
+                                <span className="text-sm text-gray-500 line-through">
+                                  ₹{product.originalPrice}
+                                </span>
+                              )}
+                          </div>
+
+                          {/* Available Sizes */}
+                          {availableSizes.length > 0 && (
+                            <div className="mt-2">
+                              <div className="flex flex-wrap gap-1">
+                                {availableSizes.slice(0, 4).map((size) => (
+                                  <span
+                                    key={size}
+                                    className="text-xs border border-gray-300 px-2 py-1 text-gray-600">
+                                    {size}
+                                  </span>
+                                ))}
+                                {availableSizes.length > 4 && (
+                                  <span className="text-xs text-gray-500">
+                                    +{availableSizes.length - 4}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div className="p-4 bg-white border-x border-b border-gray-200">
-                      <h3 className="font-semibold mb-1">{product.name}</h3>
-                      <p className="text-red-600 font-bold">₹{product.price}</p>
-                    </div>
-                  </Link>
-                </div>
-              ))}
+                    </Link>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>
