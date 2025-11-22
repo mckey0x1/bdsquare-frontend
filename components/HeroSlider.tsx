@@ -9,36 +9,62 @@ import { GET_BANNERS } from "@/graphql/query/queries";
 interface Banner {
   id: string;
   imageUrl: string;
+  desktopImageUrl?: string | null;
+  mobileImageUrl?: string | null;
   position: number | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
+interface HeroSlide {
+  id: string;
+  desktopImageUrl: string;
+  mobileImageUrl: string;
+}
+
 // Fallback images if no banners are available
-const fallbackSlides = [
+const fallbackSlides: HeroSlide[] = [
   {
     id: "fallback-1",
-    imageUrl: "/image/banner2.jpg"
+    desktopImageUrl: "/image/banner2.jpg",
+    mobileImageUrl: "/image/banner2.jpg"
   },
   {
     id: "fallback-2",
-    imageUrl: "/image/banner.jpg"
+    desktopImageUrl: "/image/banner.jpg",
+    mobileImageUrl: "/image/banner.jpg"
   },
   {
     id: "fallback-3",
-    imageUrl: "/image/banner1.jpg"
+    desktopImageUrl: "/image/banner1.jpg",
+    mobileImageUrl: "/image/banner1.jpg"
   }
 ];
 
 export default function HeroSlider() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const { data, loading, error } = useQuery(GET_BANNERS);
 
+  // Detect device type
+  useEffect(() => {
+    const checkDevice = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    // Check immediately
+    if (typeof window !== "undefined") {
+      checkDevice();
+      window.addEventListener("resize", checkDevice);
+      return () => window.removeEventListener("resize", checkDevice);
+    }
+  }, []);
+
   // Get active banners, sorted by position
-  const banners: Banner[] = data?.banners
+  const allBanners: Banner[] = data?.banners
     ? data.banners
         .filter((banner: Banner) => banner.isActive)
         .sort((a: Banner, b: Banner) => {
@@ -49,14 +75,63 @@ export default function HeroSlider() {
         })
     : [];
 
-  // Use banners if available, otherwise use fallback
-  const heroSlides =
-    banners.length > 0
-      ? banners.map((banner) => ({
-          id: banner.id,
-          imageUrl: banner.imageUrl
-        }))
-      : fallbackSlides;
+  // Separate banners by device type - include banners with specific device images
+  const desktopBanners = allBanners.filter((banner) => {
+    const desktopUrl = banner.desktopImageUrl?.trim();
+    return !!desktopUrl;
+  });
+
+  const mobileBanners = allBanners.filter((banner) => {
+    const mobileUrl = banner.mobileImageUrl?.trim();
+    return !!mobileUrl;
+  });
+
+  // Create separate slide arrays for desktop and mobile
+  const desktopSlidesRaw = desktopBanners
+    .map((banner) => {
+      const desktopUrl = banner.desktopImageUrl?.trim();
+      if (!desktopUrl || desktopUrl === "") {
+        return null;
+      }
+      return {
+        id: banner.id,
+        desktopImageUrl: desktopUrl,
+        mobileImageUrl: desktopUrl // Use desktop as fallback for mobile
+      };
+    })
+    .filter((slide): slide is HeroSlide => slide !== null);
+
+  const desktopSlides: HeroSlide[] =
+    desktopSlidesRaw.length > 0 ? desktopSlidesRaw : fallbackSlides;
+
+  const mobileSlidesRaw = mobileBanners
+    .map((banner) => {
+      const mobileUrl = banner.mobileImageUrl?.trim();
+      if (!mobileUrl || mobileUrl === "") {
+        return null;
+      }
+      return {
+        id: banner.id,
+        desktopImageUrl: mobileUrl, // Use mobile as fallback for desktop
+        mobileImageUrl: mobileUrl
+      };
+    })
+    .filter((slide): slide is HeroSlide => slide !== null);
+
+  const mobileSlides: HeroSlide[] =
+    mobileSlidesRaw.length > 0 ? mobileSlidesRaw : fallbackSlides;
+
+  // Use device-specific slides
+  const heroSlides = isMobile ? mobileSlides : desktopSlides;
+
+  // Debug logging
+
+  // Reset slide index when switching between desktop and mobile
+  useEffect(() => {
+    setCurrentSlide(0);
+  }, [isMobile]);
+
+  const shouldUnoptimize = (url: string) => url.startsWith("http");
 
   const nextSlide = () => {
     if (isTransitioning || heroSlides.length === 0) return;
@@ -71,11 +146,14 @@ export default function HeroSlider() {
   };
 
   useEffect(() => {
-    if (heroSlides.length === 0) return;
+    if (heroSlides.length === 0 || heroSlides.length === 1) return;
 
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
-    }, 5000); // Changed to 5 seconds for better UX
+      setCurrentSlide((prev) => {
+        const next = (prev + 1) % heroSlides.length;
+        return next;
+      });
+    }, 5000); // Auto-advance every 5 seconds
 
     return () => clearInterval(interval);
   }, [heroSlides.length]);
@@ -107,10 +185,12 @@ export default function HeroSlider() {
     }, 300);
   };
 
-  // Reset to first slide when slides change
+  // Reset to first slide when slides change or when switching device type
   useEffect(() => {
-    if (heroSlides.length > 0 && currentSlide >= heroSlides.length) {
-      setCurrentSlide(0);
+    if (heroSlides.length > 0) {
+      if (currentSlide >= heroSlides.length) {
+        setCurrentSlide(0);
+      }
     }
   }, [heroSlides.length, currentSlide]);
 
@@ -132,27 +212,54 @@ export default function HeroSlider() {
   }
 
   return (
-    <section className="relative h-screen overflow-hidden">
+    <section
+      className="relative w-full overflow-hidden"
+      style={{ height: "100vh", minHeight: "100vh" }}>
       {/* Background Images */}
-      <div className="absolute inset-0">
-        {heroSlides.map((slide, index) => (
-          <div
-            key={slide.id}
-            className={`absolute inset-0 transition-all duration-700 ease-in-out ${
-              index === currentSlide
-                ? "opacity-100 scale-100"
-                : "opacity-0 scale-110"
-            } ${isTransitioning ? "blur-sm" : "blur-0"}`}>
-            <Image
-              src={slide.imageUrl}
-              alt={`Hero slide ${index + 1}`}
-              fill
-              className="object-cover"
-              priority={index === 0}
-              unoptimized={slide.imageUrl.startsWith("http")}
-            />
-          </div>
-        ))}
+      <div className="absolute inset-0 w-full h-full">
+        {heroSlides.map((slide, index) => {
+          const isActive = index === currentSlide;
+          return (
+            <div
+              key={slide.id}
+              className={`absolute inset-0 w-full h-full transition-all duration-700 ease-in-out ${
+                isActive ? "opacity-100 scale-100" : "opacity-0 scale-110"
+              } ${isTransitioning ? "blur-sm" : "blur-0"}`}
+              style={{
+                position: "absolute",
+                width: "100%",
+                height: "100%",
+                zIndex: isActive ? 10 : index
+              }}>
+              {(() => {
+                const imageUrl = isMobile
+                  ? slide.mobileImageUrl
+                  : slide.desktopImageUrl;
+                if (!imageUrl || imageUrl.trim() === "") {
+                  console.warn(`Empty image URL for slide ${index}:`, slide);
+                  return null;
+                }
+                return (
+                  <Image
+                    src={imageUrl}
+                    alt={`Hero slide ${index + 1} ${
+                      isMobile ? "mobile" : "desktop"
+                    }`}
+                    fill
+                    className="object-cover"
+                    priority={index === 0 || index === 1}
+                    unoptimized={shouldUnoptimize(imageUrl)}
+                    sizes="100vw"
+                    loading={index <= 1 ? "eager" : "lazy"}
+                    onError={(e) => {
+                      console.error(`Failed to load image: ${imageUrl}`, e);
+                    }}
+                  />
+                );
+              })()}
+            </div>
+          );
+        })}
       </div>
 
       {/* Navigation Arrows - Only show if more than one slide */}

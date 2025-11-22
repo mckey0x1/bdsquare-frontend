@@ -1,4 +1,18 @@
 import { MapPin, Phone, Mail, Clock, Send } from "lucide-react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Contact Us",
+  description:
+    "Get in touch with bdsquare. Contact us for questions, support, or feedback. We're here to help with your fashion needs.",
+  keywords: ["contact bdsquare", "customer support", "help", "get in touch"],
+  openGraph: {
+    title: "Contact Us | bdsquare",
+    description:
+      "Get in touch with bdsquare. Contact us for questions, support, or feedback.",
+    type: "website"
+  }
+};
 
 export default function ContactPage() {
   return (

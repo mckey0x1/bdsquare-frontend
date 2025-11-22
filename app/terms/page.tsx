@@ -1,3 +1,16 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Terms and Conditions",
+  description:
+    "Read bdsquare's terms and conditions. Understand the rules and regulations for using our website and services.",
+  keywords: ["terms and conditions", "terms of service", "legal", "bdsquare terms"],
+  robots: {
+    index: true,
+    follow: true
+  }
+};
+
 export default function TermsPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

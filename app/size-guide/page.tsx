@@ -1,4 +1,18 @@
 import { Ruler, User, Users, Baby } from "lucide-react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Size Guide",
+  description:
+    "Find your perfect fit with bdsquare's comprehensive size guide. Measurement charts for men, women, and kids clothing.",
+  keywords: ["size guide", "sizing chart", "measurements", "fit guide", "clothing sizes"],
+  openGraph: {
+    title: "Size Guide | bdsquare",
+    description:
+      "Find your perfect fit with bdsquare's comprehensive size guide.",
+    type: "website"
+  }
+};
 
 export default function SizeGuidePage() {
   return (

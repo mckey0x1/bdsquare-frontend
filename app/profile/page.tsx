@@ -19,6 +19,7 @@ import RedCubeSpinner from "@/components/RedCubeSpinner";
 import { Address } from "@/lib/types";
 import Link from "next/link";
 import CancelOrderModal from "@/components/CancelOrderModal";
+import ReturnOrderModal from "@/components/ReturnOrderModal";
 
 function ConfirmDeleteModal({ open, onClose, onConfirm }: any) {
   if (!open) return null;
@@ -61,7 +62,8 @@ export default function ProfilePage() {
     deleteAddress,
     UpdateAddress,
     orders,
-    cancelorder
+    cancelorder,
+    returnOrder
   } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
   const [isEditing, setIsEditing] = useState(false);
@@ -320,6 +322,10 @@ export default function ProfilePage() {
 
   const cancelOrder = async (orderId: string, reason: string) => {
     cancelorder(orderId, reason);
+  };
+
+  const handleReturnOrder = async (orderId: string, reason: string) => {
+    await returnOrder(orderId, reason);
   };
 
   useEffect(() => {
@@ -879,6 +885,13 @@ export default function ProfilePage() {
                           <CancelOrderModal
                             orderId={order.id}
                             onCancel={cancelOrder}
+                          />
+                        )}
+
+                        {order.status === "DELIVERED" && (
+                          <ReturnOrderModal
+                            orderId={order.id}
+                            onReturn={handleReturnOrder}
                           />
                         )}
 

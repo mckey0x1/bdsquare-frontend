@@ -1,5 +1,19 @@
 import Image from 'next/image';
 import { Users, Award, Globe, Heart } from 'lucide-react';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: "About Us",
+  description:
+    "Learn about bdsquare's mission to bring premium fashion to everyone. Discover our story, values, and commitment to quality and sustainability.",
+  keywords: ["about bdsquare", "our story", "company values", "fashion brand"],
+  openGraph: {
+    title: "About Us | bdsquare",
+    description:
+      "Learn about bdsquare's mission to bring premium fashion to everyone.",
+    type: "website"
+  }
+};
 
 export default function AboutPage() {
   return (

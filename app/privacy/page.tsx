@@ -1,3 +1,16 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Privacy Policy",
+  description:
+    "Read bdsquare's privacy policy to understand how we collect, use, and protect your personal information.",
+  keywords: ["privacy policy", "data protection", "privacy", "bdsquare privacy"],
+  robots: {
+    index: true,
+    follow: true
+  }
+};
+
 export default function PrivacyPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

@@ -15,13 +15,11 @@ import {
 } from "@/components/ui/dialog";
 import {
   Plus,
-  Upload,
   Edit,
   Trash2,
   Eye,
   EyeOff,
-  Image as ImageIcon,
-  X
+  Image as ImageIcon
 } from "lucide-react";
 import Image from "next/image";
 import { useMutation, useQuery, useApolloClient } from "@apollo/client";
@@ -40,6 +38,8 @@ import { Search, Star, StarOff } from "lucide-react";
 interface Banner {
   id: string;
   imageUrl: string;
+  desktopImageUrl?: string | null;
+  mobileImageUrl?: string | null;
   position: number | null;
   isActive: boolean;
   createdAt: string;
@@ -47,14 +47,30 @@ interface Banner {
 }
 
 export default function LookbookPage() {
-  const [activeTab, setActiveTab] = useState("banners");
-  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"desktop" | "mobile" | "trending">(
+    "desktop"
+  );
+  const [isDesktopUploadDialogOpen, setIsDesktopUploadDialogOpen] =
+    useState(false);
+  const [isMobileUploadDialogOpen, setIsMobileUploadDialogOpen] =
+    useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedBanner, setSelectedBanner] = useState<Banner | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedDesktopFile, setSelectedDesktopFile] = useState<File | null>(
+    null
+  );
+  const [selectedMobileFile, setSelectedMobileFile] = useState<File | null>(
+    null
+  );
+  const [desktopPreviewUrl, setDesktopPreviewUrl] = useState<string | null>(
+    null
+  );
+  const [mobilePreviewUrl, setMobilePreviewUrl] = useState<string | null>(null);
+  const uploadDesktopInputRef = useRef<HTMLInputElement>(null);
+  const uploadMobileInputRef = useRef<HTMLInputElement>(null);
+  const editDesktopInputRef = useRef<HTMLInputElement>(null);
+  const editMobileInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   const { data, loading, error, refetch } = useQuery(GET_BANNERS);
@@ -94,6 +110,10 @@ export default function LookbookPage() {
 
   const banners: Banner[] = data?.banners || [];
 
+  // Filter banners by type - only show banners with specific device images
+  const desktopBanners = banners.filter((banner) => !!banner.desktopImageUrl);
+  const mobileBanners = banners.filter((banner) => !!banner.mobileImageUrl);
+
   // Local state for products to enable immediate UI updates
   const [localProducts, setLocalProducts] = useState(products);
 
@@ -113,83 +133,205 @@ export default function LookbookPage() {
   const trendingProducts = filteredProducts.filter((p) => p.isTrending);
   const nonTrendingProducts = filteredProducts.filter((p) => !p.isTrending);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith("image/")) {
-        toast.error("Please select an image file");
-        return;
-      }
-      // Validate file size (10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error("Image size must be less than 10MB");
-        return;
-      }
-      setSelectedFile(file);
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
+  const validateImageFile = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return false;
     }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Image size must be less than 10MB");
+      return false;
+    }
+    return true;
   };
 
-  const handleUpload = async () => {
-    if (!selectedFile) {
-      toast.error("Please select an image");
+  const handleDesktopSelect = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    inputRef: React.RefObject<HTMLInputElement> = uploadDesktopInputRef
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!validateImageFile(file)) {
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
+      return;
+    }
+
+    setSelectedDesktopFile(file);
+    setDesktopPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+  };
+
+  const handleMobileSelect = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    inputRef: React.RefObject<HTMLInputElement> = uploadMobileInputRef
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!validateImageFile(file)) {
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
+      return;
+    }
+
+    setSelectedMobileFile(file);
+    setMobilePreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+  };
+
+  const resetUploadFields = () => {
+    setSelectedDesktopFile(null);
+    setSelectedMobileFile(null);
+    setDesktopPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setMobilePreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+
+    [
+      uploadDesktopInputRef,
+      uploadMobileInputRef,
+      editDesktopInputRef,
+      editMobileInputRef
+    ].forEach((ref) => {
+      if (ref.current) {
+        ref.current.value = "";
+      }
+    });
+  };
+
+  const handleDesktopUpload = async () => {
+    if (!selectedDesktopFile) {
+      toast.error("Please select a desktop image");
       return;
     }
 
     setUploading(true);
     try {
-      // Upload to Cloudinary
-      const imageUrl = await uploadImageToCloudinary(selectedFile);
+      const desktopImageUrl = await uploadImageToCloudinary(
+        selectedDesktopFile
+      );
 
-      // Create banner with the Cloudinary URL
       await createBanner({
         variables: {
           data: {
-            imageUrl,
+            imageUrl: desktopImageUrl,
+            desktopImageUrl: desktopImageUrl,
             isActive: true,
             position: banners.length + 1
           }
         }
       });
 
-      toast.success("Banner uploaded successfully!");
-      setIsUploadDialogOpen(false);
-      setSelectedFile(null);
-      setPreviewUrl(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+      toast.success("Desktop banner uploaded successfully!");
+      setIsDesktopUploadDialogOpen(false);
+      setSelectedDesktopFile(null);
+      setDesktopPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      if (uploadDesktopInputRef.current) {
+        uploadDesktopInputRef.current.value = "";
       }
       refetch();
     } catch (error) {
-      console.error("Error uploading banner:", error);
-      toast.error("Failed to upload banner");
+      console.error("Error uploading desktop banner:", error);
+      toast.error("Failed to upload desktop banner");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleMobileUpload = async () => {
+    if (!selectedMobileFile) {
+      toast.error("Please select a mobile image");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const mobileImageUrl = await uploadImageToCloudinary(selectedMobileFile);
+
+      await createBanner({
+        variables: {
+          data: {
+            imageUrl: mobileImageUrl,
+            mobileImageUrl: mobileImageUrl,
+            isActive: true,
+            position: banners.length + 1
+          }
+        }
+      });
+
+      toast.success("Mobile banner uploaded successfully!");
+      setIsMobileUploadDialogOpen(false);
+      setSelectedMobileFile(null);
+      setMobilePreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      if (uploadMobileInputRef.current) {
+        uploadMobileInputRef.current.value = "";
+      }
+      refetch();
+    } catch (error) {
+      console.error("Error uploading mobile banner:", error);
+      toast.error("Failed to upload mobile banner");
     } finally {
       setUploading(false);
     }
   };
 
   const handleEdit = (banner: Banner) => {
+    resetUploadFields();
     setSelectedBanner(banner);
+    setDesktopPreviewUrl(banner.desktopImageUrl ?? banner.imageUrl ?? null);
+    setMobilePreviewUrl(banner.mobileImageUrl ?? null);
     setIsEditDialogOpen(true);
   };
 
-  const handleUpdate = async (bannerId: string, newFile: File | null) => {
+  const handleUpdate = async (bannerId: string) => {
     setUploading(true);
     try {
-      let imageUrl = selectedBanner?.imageUrl;
+      let desktopImageUrl = selectedBanner?.desktopImageUrl ?? null;
+      let mobileImageUrl = selectedBanner?.mobileImageUrl ?? null;
+      let primaryImageUrl = selectedBanner?.imageUrl ?? null;
 
-      // If a new file is selected, upload it to Cloudinary
-      if (newFile) {
-        imageUrl = await uploadImageToCloudinary(newFile);
+      if (selectedDesktopFile) {
+        desktopImageUrl = await uploadImageToCloudinary(selectedDesktopFile);
+        primaryImageUrl = desktopImageUrl ?? primaryImageUrl;
+      }
+
+      if (selectedMobileFile) {
+        mobileImageUrl = await uploadImageToCloudinary(selectedMobileFile);
+        if (!primaryImageUrl) {
+          primaryImageUrl = mobileImageUrl;
+        }
+      }
+
+      if (!primaryImageUrl) {
+        toast.error("Banner must include at least one image");
+        return;
       }
 
       await updateBanner({
         variables: {
           id: bannerId,
           data: {
-            imageUrl,
+            imageUrl: primaryImageUrl,
+            desktopImageUrl,
+            mobileImageUrl,
             isActive: selectedBanner?.isActive
           }
         }
@@ -198,11 +340,7 @@ export default function LookbookPage() {
       toast.success("Banner updated successfully!");
       setIsEditDialogOpen(false);
       setSelectedBanner(null);
-      setSelectedFile(null);
-      setPreviewUrl(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      resetUploadFields();
       refetch();
     } catch (error) {
       console.error("Error updating banner:", error);
@@ -212,16 +350,83 @@ export default function LookbookPage() {
     }
   };
 
-  const handleDelete = async (bannerId: string) => {
-    if (!confirm("Are you sure you want to delete this banner?")) {
+  const handleDelete = async (bannerId: string, banner: Banner) => {
+    const isDesktopTab = activeTab === "desktop";
+    const isMobileTab = activeTab === "mobile";
+
+    // Check what images the banner has
+    const hasDesktopImage = !!banner.desktopImageUrl;
+    const hasMobileImage = !!banner.mobileImageUrl;
+
+    // Determine what to delete
+    let confirmMessage = "";
+    if (isDesktopTab) {
+      confirmMessage = "Are you sure you want to delete this desktop banner?";
+    } else if (isMobileTab) {
+      confirmMessage = "Are you sure you want to delete this mobile banner?";
+    } else {
+      confirmMessage = "Are you sure you want to delete this banner?";
+    }
+
+    if (!confirm(confirmMessage)) {
       return;
     }
 
     try {
-      await deleteBanner({
-        variables: { id: bannerId }
-      });
-      toast.success("Banner deleted successfully!");
+      // If deleting from desktop tab, only remove desktop image
+      if (isDesktopTab) {
+        // If banner also has mobile image, just remove desktop image and keep mobile
+        if (hasMobileImage) {
+          await updateBanner({
+            variables: {
+              id: bannerId,
+              data: {
+                desktopImageUrl: null,
+                // Keep mobile image as primary
+                imageUrl: banner.mobileImageUrl
+              }
+            }
+          });
+          toast.success("Desktop banner removed successfully!");
+        } else {
+          // If no mobile image, delete the entire banner
+          await deleteBanner({
+            variables: { id: bannerId }
+          });
+          toast.success("Desktop banner deleted successfully!");
+        }
+      }
+      // If deleting from mobile tab, only remove mobile image
+      else if (isMobileTab) {
+        // If banner also has desktop image, just remove mobile image and keep desktop
+        if (hasDesktopImage) {
+          await updateBanner({
+            variables: {
+              id: bannerId,
+              data: {
+                mobileImageUrl: null,
+                // Keep desktop image as primary
+                imageUrl: banner.desktopImageUrl
+              }
+            }
+          });
+          toast.success("Mobile banner removed successfully!");
+        } else {
+          // If no desktop image, delete the entire banner
+          await deleteBanner({
+            variables: { id: bannerId }
+          });
+          toast.success("Mobile banner deleted successfully!");
+        }
+      }
+      // If deleting from other tabs (trending), delete entire banner
+      else {
+        await deleteBanner({
+          variables: { id: bannerId }
+        });
+        toast.success("Banner deleted successfully!");
+      }
+
       refetch();
     } catch (error) {
       console.error("Error deleting banner:", error);
@@ -338,13 +543,22 @@ export default function LookbookPage() {
       {/* Tabs */}
       <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
         <button
-          onClick={() => setActiveTab("banners")}
+          onClick={() => setActiveTab("desktop")}
           className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-            activeTab === "banners"
+            activeTab === "desktop"
               ? "bg-white text-gray-900 shadow-sm"
               : "text-gray-600 hover:text-gray-900"
           }`}>
-          Homepage Banners
+          Desktop Banners
+        </button>
+        <button
+          onClick={() => setActiveTab("mobile")}
+          className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+            activeTab === "mobile"
+              ? "bg-white text-gray-900 shadow-sm"
+              : "text-gray-600 hover:text-gray-900"
+          }`}>
+          Mobile Banners
         </button>
         <button
           onClick={() => setActiveTab("trending")}
@@ -357,60 +571,85 @@ export default function LookbookPage() {
         </button>
       </div>
 
-      {activeTab === "banners" && (
+      {/* Desktop Banners Tab */}
+      {activeTab === "desktop" && (
         <div className="space-y-6">
           <div className="flex justify-end">
             <Dialog
-              open={isUploadDialogOpen}
-              onOpenChange={setIsUploadDialogOpen}>
+              open={isDesktopUploadDialogOpen}
+              onOpenChange={(open) => {
+                setIsDesktopUploadDialogOpen(open);
+                if (!open) {
+                  setSelectedDesktopFile(null);
+                  setDesktopPreviewUrl((prev) => {
+                    if (prev) URL.revokeObjectURL(prev);
+                    return null;
+                  });
+                  if (uploadDesktopInputRef.current) {
+                    uploadDesktopInputRef.current.value = "";
+                  }
+                }
+              }}>
               <DialogTrigger asChild>
                 <Button className="flex items-center gap-2">
                   <Plus className="h-4 w-4" />
-                  Upload Banner
+                  Upload Desktop Banner
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Upload Banner Image</DialogTitle>
+                  <DialogTitle>Upload Desktop Banner</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="banner-upload">Select Image</Label>
+                  <p className="text-sm text-gray-600">
+                    Upload a banner image optimized for desktop views
+                    (recommended: 1920×800px)
+                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="desktop-banner-upload">
+                      Desktop Banner Image
+                    </Label>
                     <Input
-                      id="banner-upload"
+                      id="desktop-banner-upload"
                       type="file"
                       accept="image/*"
-                      ref={fileInputRef}
-                      onChange={handleFileSelect}
-                      className="mt-2"
+                      ref={uploadDesktopInputRef}
+                      onChange={handleDesktopSelect}
                     />
-                  </div>
-                  {previewUrl && (
-                    <div className="relative w-full h-64 border rounded-lg overflow-hidden">
-                      <Image
-                        src={previewUrl}
-                        alt="Preview"
-                        fill
-                        className="object-contain"
-                      />
+                    <div className="relative w-full h-64 border rounded-lg overflow-hidden flex items-center justify-center bg-muted">
+                      {desktopPreviewUrl ? (
+                        <Image
+                          src={desktopPreviewUrl}
+                          alt="Desktop preview"
+                          fill
+                          className="object-contain"
+                        />
+                      ) : (
+                        <span className="text-sm text-gray-500">
+                          Select a desktop image to preview
+                        </span>
+                      )}
                     </div>
-                  )}
+                  </div>
                   <div className="flex gap-2 justify-end">
                     <Button
                       variant="outline"
                       onClick={() => {
-                        setIsUploadDialogOpen(false);
-                        setSelectedFile(null);
-                        setPreviewUrl(null);
-                        if (fileInputRef.current) {
-                          fileInputRef.current.value = "";
+                        setIsDesktopUploadDialogOpen(false);
+                        setSelectedDesktopFile(null);
+                        setDesktopPreviewUrl((prev) => {
+                          if (prev) URL.revokeObjectURL(prev);
+                          return null;
+                        });
+                        if (uploadDesktopInputRef.current) {
+                          uploadDesktopInputRef.current.value = "";
                         }
                       }}>
                       Cancel
                     </Button>
                     <Button
-                      onClick={handleUpload}
-                      disabled={!selectedFile || uploading}>
+                      onClick={handleDesktopUpload}
+                      disabled={!selectedDesktopFile || uploading}>
                       {uploading ? "Uploading..." : "Upload"}
                     </Button>
                   </div>
@@ -419,79 +658,252 @@ export default function LookbookPage() {
             </Dialog>
           </div>
 
-          {banners.length === 0 ? (
+          {desktopBanners.length === 0 ? (
             <Card>
               <CardContent className="p-12 text-center">
                 <ImageIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600">
-                  No banners yet. Upload your first banner image!
+                  No desktop banners yet. Upload your first desktop banner!
                 </p>
               </CardContent>
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {banners.map((banner) => (
-                <Card key={banner.id} className="overflow-hidden">
-                  <div className="relative h-64">
-                    <Image
-                      src={banner.imageUrl}
-                      alt={`Banner ${banner.id}`}
-                      fill
-                      className="object-cover"
-                    />
-                    <div className="absolute top-2 right-2 flex gap-2">
-                      <Badge
-                        variant={banner.isActive ? "default" : "secondary"}>
-                        {banner.isActive ? (
-                          <>
-                            <Eye className="h-3 w-3 mr-1" />
-                            Active
-                          </>
-                        ) : (
-                          <>
-                            <EyeOff className="h-3 w-3 mr-1" />
-                            Hidden
-                          </>
-                        )}
-                      </Badge>
-                      {banner.position && (
-                        <Badge variant="outline">
-                          Position {banner.position}
+              {desktopBanners.map((banner) => {
+                const desktopPreview =
+                  banner.desktopImageUrl?.trim() || banner.imageUrl;
+
+                return (
+                  <Card key={banner.id} className="overflow-hidden">
+                    <div className="relative h-64">
+                      <Image
+                        src={desktopPreview}
+                        alt={`Desktop Banner ${banner.id}`}
+                        fill
+                        className="object-cover"
+                      />
+                      <div className="absolute top-2 right-2 flex gap-2">
+                        <Badge
+                          variant={banner.isActive ? "default" : "secondary"}>
+                          {banner.isActive ? (
+                            <>
+                              <Eye className="h-3 w-3 mr-1" />
+                              Active
+                            </>
+                          ) : (
+                            <>
+                              <EyeOff className="h-3 w-3 mr-1" />
+                              Hidden
+                            </>
+                          )}
                         </Badge>
+                        {banner.position !== null && (
+                          <Badge variant="outline">
+                            Position {banner.position}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <CardContent className="p-4">
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => handleEdit(banner)}>
+                          <Edit className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleToggleActive(banner)}>
+                          {banner.isActive ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(banner.id, banner)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Mobile Banners Tab */}
+      {activeTab === "mobile" && (
+        <div className="space-y-6">
+          <div className="flex justify-end">
+            <Dialog
+              open={isMobileUploadDialogOpen}
+              onOpenChange={(open) => {
+                setIsMobileUploadDialogOpen(open);
+                if (!open) {
+                  setSelectedMobileFile(null);
+                  setMobilePreviewUrl((prev) => {
+                    if (prev) URL.revokeObjectURL(prev);
+                    return null;
+                  });
+                  if (uploadMobileInputRef.current) {
+                    uploadMobileInputRef.current.value = "";
+                  }
+                }
+              }}>
+              <DialogTrigger asChild>
+                <Button className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Upload Mobile Banner
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Upload Mobile Banner</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-600">
+                    Upload a banner image optimized for mobile views
+                    (recommended: 1080×1350px)
+                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="mobile-banner-upload">
+                      Mobile Banner Image
+                    </Label>
+                    <Input
+                      id="mobile-banner-upload"
+                      type="file"
+                      accept="image/*"
+                      ref={uploadMobileInputRef}
+                      onChange={handleMobileSelect}
+                    />
+                    <div className="relative w-full h-64 border rounded-lg overflow-hidden flex items-center justify-center bg-muted">
+                      {mobilePreviewUrl ? (
+                        <Image
+                          src={mobilePreviewUrl}
+                          alt="Mobile preview"
+                          fill
+                          className="object-contain"
+                        />
+                      ) : (
+                        <span className="text-sm text-gray-500">
+                          Select a mobile image to preview
+                        </span>
                       )}
                     </div>
                   </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setIsMobileUploadDialogOpen(false);
+                        setSelectedMobileFile(null);
+                        setMobilePreviewUrl((prev) => {
+                          if (prev) URL.revokeObjectURL(prev);
+                          return null;
+                        });
+                        if (uploadMobileInputRef.current) {
+                          uploadMobileInputRef.current.value = "";
+                        }
+                      }}>
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleMobileUpload}
+                      disabled={!selectedMobileFile || uploading}>
+                      {uploading ? "Uploading..." : "Upload"}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
 
-                  <CardContent className="p-4">
-                    <div className="flex gap-2 pt-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => handleEdit(banner)}>
-                        <Edit className="h-4 w-4 mr-1" />
-                        Edit
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleToggleActive(banner)}>
-                        {banner.isActive ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
+          {mobileBanners.length === 0 ? (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <ImageIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">
+                  No mobile banners yet. Upload your first mobile banner!
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {mobileBanners.map((banner) => {
+                const mobilePreview =
+                  banner.mobileImageUrl?.trim() || banner.imageUrl;
+
+                return (
+                  <Card key={banner.id} className="overflow-hidden">
+                    <div className="relative h-64">
+                      <Image
+                        src={mobilePreview}
+                        alt={`Mobile Banner ${banner.id}`}
+                        fill
+                        className="object-cover"
+                      />
+                      <div className="absolute top-2 right-2 flex gap-2">
+                        <Badge
+                          variant={banner.isActive ? "default" : "secondary"}>
+                          {banner.isActive ? (
+                            <>
+                              <Eye className="h-3 w-3 mr-1" />
+                              Active
+                            </>
+                          ) : (
+                            <>
+                              <EyeOff className="h-3 w-3 mr-1" />
+                              Hidden
+                            </>
+                          )}
+                        </Badge>
+                        {banner.position !== null && (
+                          <Badge variant="outline">
+                            Position {banner.position}
+                          </Badge>
                         )}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(banner.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    <CardContent className="p-4">
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => handleEdit(banner)}>
+                          <Edit className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleToggleActive(banner)}>
+                          {banner.isActive ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(banner.id, banner)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>
@@ -614,64 +1026,102 @@ export default function LookbookPage() {
       )}
 
       {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (!open) {
+            setSelectedBanner(null);
+            resetUploadFields();
+          }
+        }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Banner</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            {selectedBanner && (
-              <div className="relative w-full h-64 border rounded-lg overflow-hidden">
-                <Image
-                  src={previewUrl || selectedBanner.imageUrl}
-                  alt="Banner"
-                  fill
-                  className="object-contain"
+          <div className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="edit-desktop-banner-upload">
+                  Desktop Banner
+                </Label>
+                <div className="relative w-full h-48 border rounded-lg overflow-hidden flex items-center justify-center bg-muted">
+                  {desktopPreviewUrl ||
+                  selectedBanner?.desktopImageUrl ||
+                  selectedBanner?.imageUrl ? (
+                    <Image
+                      src={
+                        desktopPreviewUrl ??
+                        selectedBanner?.desktopImageUrl ??
+                        selectedBanner?.imageUrl ??
+                        ""
+                      }
+                      alt="Desktop banner preview"
+                      fill
+                      className="object-contain"
+                    />
+                  ) : (
+                    <span className="text-sm text-gray-500">
+                      Upload a desktop banner image
+                    </span>
+                  )}
+                </div>
+                <Input
+                  id="edit-desktop-banner-upload"
+                  type="file"
+                  accept="image/*"
+                  ref={editDesktopInputRef}
+                  onChange={(event) =>
+                    handleDesktopSelect(event, editDesktopInputRef)
+                  }
                 />
               </div>
-            )}
-            <div>
-              <Label htmlFor="edit-banner-upload">
-                Replace Image (optional)
-              </Label>
-              <Input
-                id="edit-banner-upload"
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    if (!file.type.startsWith("image/")) {
-                      toast.error("Please select an image file");
-                      return;
-                    }
-                    if (file.size > 10 * 1024 * 1024) {
-                      toast.error("Image size must be less than 10MB");
-                      return;
-                    }
-                    setSelectedFile(file);
-                    const url = URL.createObjectURL(file);
-                    setPreviewUrl(url);
+              <div className="space-y-2">
+                <Label htmlFor="edit-mobile-banner-upload">Mobile Banner</Label>
+                <div className="relative w-full h-48 border rounded-lg overflow-hidden flex items-center justify-center bg-muted">
+                  {mobilePreviewUrl || selectedBanner?.mobileImageUrl ? (
+                    <Image
+                      src={
+                        mobilePreviewUrl ?? selectedBanner?.mobileImageUrl ?? ""
+                      }
+                      alt="Mobile banner preview"
+                      fill
+                      className="object-contain"
+                    />
+                  ) : (
+                    <span className="text-sm text-gray-500">
+                      Upload a mobile banner image
+                    </span>
+                  )}
+                </div>
+                <Input
+                  id="edit-mobile-banner-upload"
+                  type="file"
+                  accept="image/*"
+                  ref={editMobileInputRef}
+                  onChange={(event) =>
+                    handleMobileSelect(event, editMobileInputRef)
                   }
-                }}
-                className="mt-2"
-              />
+                />
+              </div>
             </div>
+            <p className="text-xs text-gray-500">
+              Uploading only one image will apply it across both views. Add both
+              to optimize for each device.
+            </p>
             <div className="flex gap-2 justify-end">
               <Button
                 variant="outline"
                 onClick={() => {
                   setIsEditDialogOpen(false);
                   setSelectedBanner(null);
-                  setSelectedFile(null);
-                  setPreviewUrl(null);
+                  resetUploadFields();
                 }}>
                 Cancel
               </Button>
               <Button
                 onClick={() =>
-                  selectedBanner &&
-                  handleUpdate(selectedBanner.id, selectedFile)
+                  selectedBanner && handleUpdate(selectedBanner.id)
                 }
                 disabled={uploading}>
                 {uploading ? "Updating..." : "Update"}

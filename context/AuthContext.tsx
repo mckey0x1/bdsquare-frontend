@@ -32,6 +32,7 @@ import {
   CREATE_ORDER,
   CONFIRM_ONLINE_ORDER,
   CANCEL_ORDER,
+  RETURN_ORDER,
   WRITE_REVIEW
 } from "@/graphql/mutation/mutations";
 import {
@@ -88,6 +89,7 @@ interface AuthContextType {
     | undefined
   >;
   cancelorder: (id: string, reason: string) => Promise<void>;
+  returnOrder: (id: string, reason: string) => Promise<void>;
   orders: any[];
   allOrders: any[];
   submitReview: (newReview: any, productId: string) => Promise<void>;
@@ -136,6 +138,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [createOrderMutation] = useMutation(CREATE_ORDER);
   const [confirmOnlineOrderMutation] = useMutation(CONFIRM_ONLINE_ORDER);
   const [cancelOrderMutation] = useMutation(CANCEL_ORDER);
+  const [returnOrderMutation] = useMutation(RETURN_ORDER);
   const [writeReviewMutation] = useMutation(WRITE_REVIEW);
 
   function generateRandomId(length: number): string {
@@ -724,6 +727,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setRandomId4(generateRandomId(6));
     } catch (error: any) {
       console.log(error.message);
+      toast.error(error.message || "Failed to cancel order");
+    }
+  };
+
+  const returnOrder = async (id: string, reason: string) => {
+    try {
+      const response = await returnOrderMutation({
+        variables: { orderId: id, reason: reason }
+      });
+      if (response.data?.returnOrder?.success) {
+        toast.success(response.data.returnOrder.message || "Order returned successfully");
+        setRandomId(generateRandomId(6));
+        setRandomId4(generateRandomId(6));
+      } else {
+        throw new Error(response.data?.returnOrder?.message || "Failed to return order");
+      }
+    } catch (error: any) {
+      console.log(error.message);
+      toast.error(error.message || "Failed to return order");
+      throw error;
     }
   };
 
@@ -799,6 +822,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         CreateOrder,
         orders,
         cancelorder,
+        returnOrder,
         submitReview,
         allOrders
       }}>

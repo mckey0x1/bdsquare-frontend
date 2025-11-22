@@ -299,6 +299,28 @@ export const CANCEL_ORDER = gql`
   }
 `;
 
+export const RETURN_ORDER = gql`
+  mutation ReturnOrder($orderId: String!, $reason: String) {
+    returnOrder(orderId: $orderId, reason: $reason) {
+      success
+      message
+      refundId
+      refundStatus
+      order {
+        id
+        status
+        totalAmount
+        orderItems {
+          id
+          name
+          quantity
+          price
+        }
+      }
+    }
+  }
+`;
+
 export const WRITE_REVIEW = gql`
   mutation Mutation($data: CreateReviewInput!) {
     createReview(data: $data) {
@@ -319,6 +341,8 @@ export const CREATE_BANNER_MUTATION = gql`
     createBanner(data: $data) {
       id
       imageUrl
+      desktopImageUrl
+      mobileImageUrl
       position
       isActive
       createdAt
@@ -332,6 +356,8 @@ export const UPDATE_BANNER_MUTATION = gql`
     updateBanner(id: $id, data: $data) {
       id
       imageUrl
+      desktopImageUrl
+      mobileImageUrl
       position
       isActive
       createdAt
@@ -345,6 +371,8 @@ export const DELETE_BANNER_MUTATION = gql`
     deleteBanner(id: $id) {
       id
       imageUrl
+      desktopImageUrl
+      mobileImageUrl
     }
   }
 `;
@@ -366,6 +394,57 @@ export const TOGGLE_PRODUCT_TRENDING_MUTATION = gql`
         stock
         batchNo
       }
+    }
+  }
+`;
+
+export const CREATE_COUPON_MUTATION = gql`
+  mutation CreateCoupon($data: CreateCouponInput!) {
+    createCoupon(data: $data) {
+      id
+      code
+      type
+      value
+      minAmount
+      maxDiscount
+      validFrom
+      validTo
+      usageLimit
+      usedCount
+      isActive
+      description
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const UPDATE_COUPON_MUTATION = gql`
+  mutation UpdateCoupon($id: ID!, $data: UpdateCouponInput!) {
+    updateCoupon(id: $id, data: $data) {
+      id
+      code
+      type
+      value
+      minAmount
+      maxDiscount
+      validFrom
+      validTo
+      usageLimit
+      usedCount
+      isActive
+      description
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const DELETE_COUPON_MUTATION = gql`
+  mutation DeleteCoupon($id: ID!) {
+    deleteCoupon(id: $id) {
+      id
+      code
     }
   }
 `;

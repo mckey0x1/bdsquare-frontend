@@ -16,11 +16,16 @@ import {
   Building,
   Wallet,
   Check,
-  ArrowLeft
+  ArrowLeft,
+  Tag,
+  X
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import CubeSpinner from "@/components/cube-loader";
 import Script from "next/script";
+import { useLazyQuery } from "@apollo/client";
+import { VALIDATE_COUPON } from "@/graphql/query/queries";
+import { toast } from "sonner";
 
 function ConfirmDeleteModal({ open, onClose, onConfirm }: any) {
   if (!open) return null;
@@ -73,6 +78,12 @@ export default function CheckoutPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [addressToDelete, setAddressToDelete] = useState<string | null>(null);
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+
+  const [validateCoupon] = useLazyQuery(VALIDATE_COUPON);
 
   const [newAddress, setNewAddress] = useState({
     name: "",
@@ -99,7 +110,7 @@ export default function CheckoutPage() {
   );
   const [shipping, setShipping] = useState<number | undefined>(undefined);
   const tax = subtotal * 0.08;
-  const total = subtotal + (shipping ?? 0);
+  const total = subtotal + (shipping ?? 0) - discountAmount;
 
   const paymentOptions = [
     {
@@ -315,7 +326,9 @@ export default function CheckoutPage() {
       pincode: selectedAddressDetails?.pincode,
       mobile: selectedAddressDetails?.mobile,
       totalAmount: total || null,
-      userId: user?.id || null
+      userId: user?.id || null,
+      couponId: appliedCoupon?.id || null,
+      discountAmount: discountAmount || null
     };
 
     try {
@@ -337,6 +350,49 @@ export default function CheckoutPage() {
       console.error("Error creating order:", error);
       // alert("There was an error creating your order. Please try again.");
     }
+  };
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      toast.error("Please enter a coupon code");
+      return;
+    }
+
+    setIsValidatingCoupon(true);
+    try {
+      const { data } = await validateCoupon({
+        variables: {
+          input: {
+            code: couponCode.toUpperCase(),
+            totalAmount: subtotal + (shipping ?? 0)
+          }
+        }
+      });
+
+      if (data?.validateCoupon?.valid) {
+        setAppliedCoupon(data.validateCoupon.coupon);
+        setDiscountAmount(data.validateCoupon.discountAmount);
+        toast.success(data.validateCoupon.message || "Coupon applied successfully!");
+        setCouponCode("");
+      } else {
+        toast.error(data?.validateCoupon?.message || "Invalid coupon code");
+        setAppliedCoupon(null);
+        setDiscountAmount(0);
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to validate coupon");
+      setAppliedCoupon(null);
+      setDiscountAmount(0);
+    } finally {
+      setIsValidatingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setDiscountAmount(0);
+    setCouponCode("");
+    toast.success("Coupon removed");
   };
 
   const canProceedToPayment = selectedAddress !== "";
@@ -913,6 +969,68 @@ export default function CheckoutPage() {
                   <span>Delivery Charges</span>
                   <span>&#8377;{tax.toFixed(2)}</span>
                 </div> */}
+              </div>
+
+              {/* Coupon Section */}
+              <div className="mb-4 border-t pt-4">
+                {appliedCoupon ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between bg-green-50 p-3 rounded-lg border border-green-200">
+                      <div className="flex items-center gap-2">
+                        <Tag className="h-4 w-4 text-green-600" />
+                        <div>
+                          <p className="text-sm font-semibold text-green-800">
+                            {appliedCoupon.code}
+                          </p>
+                          <p className="text-xs text-green-600">
+                            {appliedCoupon.type === "fixed"
+                              ? `₹${appliedCoupon.value} off`
+                              : `${appliedCoupon.value}% off`}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleRemoveCoupon}
+                        className="text-green-600 hover:text-green-800">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="flex justify-between text-green-600">
+                      <span>Discount</span>
+                      <span className="font-semibold">
+                        -₹{discountAmount.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">
+                      Have a coupon code?
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={couponCode}
+                        onChange={(e) =>
+                          setCouponCode(e.target.value.toUpperCase())
+                        }
+                        placeholder="Enter code"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                        onKeyPress={(e) => {
+                          if (e.key === "Enter") {
+                            handleApplyCoupon();
+                          }
+                        }}
+                      />
+                      <button
+                        onClick={handleApplyCoupon}
+                        disabled={isValidatingCoupon || !couponCode.trim()}
+                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
+                        {isValidatingCoupon ? "..." : "Apply"}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="border-t-2 border-gray-300 pt-3 mb-6">

@@ -210,10 +210,57 @@ export const GET_BANNERS = gql`
     banners {
       id
       imageUrl
+      desktopImageUrl
+      mobileImageUrl
       position
       isActive
       createdAt
       updatedAt
+    }
+  }
+`;
+
+export const GET_COUPONS = gql`
+  query GetCoupons {
+    coupons {
+      id
+      code
+      type
+      value
+      minAmount
+      maxDiscount
+      validFrom
+      validTo
+      usageLimit
+      usedCount
+      isActive
+      description
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const VALIDATE_COUPON = gql`
+  query ValidateCoupon($input: ValidateCouponInput!) {
+    validateCoupon(input: $input) {
+      valid
+      coupon {
+        id
+        code
+        type
+        value
+        minAmount
+        maxDiscount
+        validFrom
+        validTo
+        usageLimit
+        usedCount
+        isActive
+        description
+      }
+      discountAmount
+      message
     }
   }
 `;

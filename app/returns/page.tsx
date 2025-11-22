@@ -6,6 +6,20 @@ import {
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Returns & Exchanges",
+  description:
+    "Learn about bdsquare's return and exchange policy. Easy returns within 30 days. Free return shipping on eligible items.",
+  keywords: ["returns", "exchanges", "return policy", "refund", "bdsquare returns"],
+  openGraph: {
+    title: "Returns & Exchanges | bdsquare",
+    description:
+      "Learn about bdsquare's return and exchange policy. Easy returns within 30 days.",
+    type: "website"
+  }
+};
 
 export default function ReturnsPage() {
   return (
