@@ -11,6 +11,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/cart-context";
 import ShowcaseSection from "@/components/showcasesection";
 import AutoSlider from "@/components/compSlider";
+import CategoryFilter from "@/components/CategoryFilter";
+import { useState } from "react";
 
 // Helper to return a single image URL for a product (handles color-specific images)
 const getSingleImage = (product: any) => {
@@ -31,6 +33,7 @@ const getSingleImage = (product: any) => {
 
 export default function Home() {
   const { products } = useAuth();
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const filteredProducts = products.filter((product) => {
     // ✅ Only keep if at least one variant is in stock
@@ -39,7 +42,29 @@ export default function Home() {
 
     return true;
   });
-  const featuredProducts = filteredProducts.slice(0, 30);
+  
+  // Filter featured products based on selected category
+  let featuredProductsBase: typeof filteredProducts;
+  if (selectedCategory) {
+    // When a category is selected, show all products from that category
+    featuredProductsBase = filteredProducts.filter((product) => {
+      // Match category case-insensitively and handle variations like "T-Shirts" vs "T-shirts"
+      const normalizeCategory = (cat: string) =>
+        cat?.toLowerCase().replace(/\s+/g, "").replace(/-/g, "") || "";
+      const productCategory = normalizeCategory(product.category || "");
+      const selectedCategoryNormalized = normalizeCategory(selectedCategory);
+      
+      return (
+        productCategory === selectedCategoryNormalized ||
+        product.category?.toLowerCase().includes(selectedCategoryNormalized) ||
+        selectedCategoryNormalized.includes(productCategory)
+      );
+    });
+  } else {
+    // When no category is selected, show first 30 products
+    featuredProductsBase = filteredProducts.slice(0, 30);
+  }
+  const featuredProducts = featuredProductsBase;
   const newProducts = filteredProducts.filter((p) => p.isNew);
   const trendingProducts = filteredProducts.filter((p) => p.isTrending);
 
@@ -47,6 +72,12 @@ export default function Home() {
     <div>
       {/* Hero Section */}
       <HeroSlider />
+
+      {/* Category Filter for Featured Products */}
+      <CategoryFilter
+        onCategoryChange={setSelectedCategory}
+        selectedCategory={selectedCategory}
+      />
 
       {/* Trending Products */}
       {trendingProducts.length > 0 && (
@@ -280,8 +311,17 @@ export default function Home() {
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               FEATURED PRODUCTS
+              {selectedCategory && (
+                <span className="block text-2xl md:text-3xl mt-2 text-red-600">
+                  - {selectedCategory.toUpperCase()} -
+                </span>
+              )}
             </h2>
-            <p className="text-xl text-gray-600">Our most popular items</p>
+            <p className="text-xl text-gray-600">
+              {selectedCategory
+                ? `Explore our ${selectedCategory} collection`
+                : "Our most popular items"}
+            </p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-0">
@@ -388,14 +428,29 @@ export default function Home() {
             })}
           </div>
 
-          <div className="text-center mt-8">
-            <Link
-              href="/products"
-              className="bg-red-600 text-white px-8 py-3 font-semibold hover:bg-red-700 transition-colors inline-flex items-center">
-              VIEW ALL PRODUCTS
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Link>
-          </div>
+          {featuredProducts.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-xl text-gray-600 mb-4">
+                No products found in this category.
+              </p>
+              <button
+                onClick={() => setSelectedCategory(null)}
+                className="text-red-600 hover:text-red-700 underline">
+                Clear filter to see all products
+              </button>
+            </div>
+          )}
+
+          {featuredProducts.length > 0 && (
+            <div className="text-center mt-8">
+              <Link
+                href="/products"
+                className="bg-red-600 text-white px-8 py-3 font-semibold hover:bg-red-700 transition-colors inline-flex items-center">
+                VIEW ALL PRODUCTS
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
+            </div>
+          )}
         </div>
       </section>
       {/* <AutoSlider /> */}
