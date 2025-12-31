@@ -851,7 +851,7 @@ export default function CheckoutPage() {
                           </div>
                           <div className="text-right">
                             <p className="font-bold text-red-600">
-                              ${(item.product.price * item.quantity).toFixed(2)}
+                              ₹{(item.product.price * item.quantity).toFixed(2)}
                             </p>
                           </div>
                         </div>

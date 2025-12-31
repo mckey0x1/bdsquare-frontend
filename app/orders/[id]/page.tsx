@@ -15,7 +15,9 @@ import {
   Download,
   ArrowLeft,
   Calendar,
-  CreditCard
+  CreditCard,
+  AlertCircle,
+  RefreshCw
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -112,6 +114,26 @@ export default function OrderTrackingPage() {
 
   const order = orders.find((order) => order.id === orderId);
 
+  // Show error if order not found
+  if (!order) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white border-2 border-gray-200 p-6 text-center">
+          <AlertCircle className="h-16 w-16 text-red-600 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold mb-2">Order Not Found</h1>
+          <p className="text-gray-600 mb-4">
+            The order you're looking for doesn't exist.
+          </p>
+          <button
+            onClick={() => router.push("/profile")}
+            className="bg-red-600 text-white px-4 py-2 hover:bg-red-700 transition-colors">
+            Go to Profile
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const handlePrint = () => {
     setShowPrintView(true);
     setTimeout(() => {
@@ -121,19 +143,30 @@ export default function OrderTrackingPage() {
   };
 
   const getStatusIcon = (status: string, completed: boolean) => {
+    // Handle both uppercase (backend) and lowercase statuses
+    const statusUpper = status?.toUpperCase();
+
+    // If completed, show green checkmark, otherwise show gray icon
     if (completed) {
-      return <CheckCircle className="h-6 w-6 text-black" />;
+      return <CheckCircle className="h-6 w-6 text-green-600" />;
     }
 
-    switch (status) {
-      case "confirmed":
+    // For incomplete statuses, show gray icons
+    switch (statusUpper) {
+      case "PENDING":
         return <Package className="h-6 w-6 text-gray-400" />;
-      case "processing":
-        return <Clock className="h-6 w-6 text-gray-400" />;
-      case "shipped":
-        return <Truck className="h-6 w-6 text-gray-400" />;
-      case "delivered":
+      case "CONFIRMED":
         return <CheckCircle className="h-6 w-6 text-gray-400" />;
+      case "SHIPPED":
+        return <Truck className="h-6 w-6 text-gray-400" />;
+      case "OUT_FOR_DELIVERY":
+        return <Truck className="h-6 w-6 text-gray-400" />;
+      case "DELIVERED":
+        return <CheckCircle className="h-6 w-6 text-gray-400" />;
+      case "CANCELLED":
+        return <AlertCircle className="h-6 w-6 text-red-600" />; // Keep red for cancelled even if not completed
+      case "RETURNED":
+        return <RefreshCw className="h-6 w-6 text-gray-400" />;
       default:
         return <Clock className="h-6 w-6 text-gray-400" />;
     }
@@ -239,8 +272,50 @@ export default function OrderTrackingPage() {
         </div>
 
         {/* Total */}
-        <div className="text-right">
-          <p className="text-2xl font-bold">Total: ₹{order.totalAmount}</p>
+        <div className="text-right space-y-2">
+          {(() => {
+            const subtotal = order.orderItems.reduce(
+              (sum: number, item: any) => sum + item.price * item.quantity,
+              0
+            );
+            const deliveryCharges = order.paymentMethod === "COD" ? 49 : 0;
+            const discountAmount = order.discountAmount || 0;
+            const total = subtotal + deliveryCharges - discountAmount;
+
+            return (
+              <>
+                <div className="flex justify-end space-x-4">
+                  <span>
+                    Price (
+                    {order.orderItems.reduce(
+                      (sum: number, item: any) => sum + item.quantity,
+                      0
+                    )}{" "}
+                    items):
+                  </span>
+                  <span>₹{subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-end space-x-4">
+                  <span>Delivery Charges:</span>
+                  <span>
+                    {deliveryCharges === 0
+                      ? "FREE"
+                      : `₹${deliveryCharges.toFixed(2)}`}
+                  </span>
+                </div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-end space-x-4 text-green-600">
+                    <span>Discount:</span>
+                    <span>-₹{discountAmount.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-end space-x-4 text-2xl font-bold border-t pt-2 mt-2">
+                  <span>Total:</span>
+                  <span>₹{order.totalAmount}</span>
+                </div>
+              </>
+            );
+          })()}
         </div>
 
         <style jsx global>{`
@@ -308,61 +383,51 @@ export default function OrderTrackingPage() {
             <h2 className="text-xl font-semibold mb-6">Order Status</h2>
 
             <div className="space-y-6">
-              {order?.status === "CANCELLED"
-                ? order?.trackingSteps
-                    ?.filter(
-                      (step: any) =>
-                        step.status === "CONFIRMED" ||
-                        step.status === "CANCELLED"
-                    )
-                    ?.map((step: any, index: any) => (
-                      <div
-                        key={step.status}
-                        className="flex items-center space-x-4">
-                        <div className="flex-shrink-0">
-                          {getStatusIcon(step.status, step.completed)}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <h3
-                              className={`font-semibold ${
-                                step.status === "CANCELLED"
-                                  ? "text-red-600"
-                                  : step.completed
-                                  ? "text-green-600"
-                                  : "text-gray-600"
-                              }`}>
-                              {step.label}
-                            </h3>
-                            {step.date && (
-                              <span className="text-sm text-gray-500">
-                                {new Date(Number(step.date)).toLocaleDateString(
-                                  "en-IN",
-                                  {
-                                    day: "2-digit",
-                                    month: "2-digit",
-                                    year: "numeric"
-                                  }
-                                )}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        {index < 1 && ( // only one connector line between Confirmed -> Cancelled
-                          <div
-                            className={`absolute left-3 mt-8 w-0.5 h-6 ${
-                              step.status === "CANCELLED"
-                                ? "bg-red-600"
-                                : "bg-green-600"
-                            }`}
-                          />
-                        )}
-                      </div>
-                    ))
-                : order?.trackingSteps?.map((step: any, index: any) => (
+              {(() => {
+                // Sort tracking steps by their order: PENDING -> CONFIRMED -> SHIPPED -> OUT_FOR_DELIVERY -> DELIVERED
+                // If order is cancelled, show: CONFIRMED -> CANCELLED
+                const statusOrder: { [key: string]: number } = {
+                  PENDING: 0,
+                  CONFIRMED: 1,
+                  SHIPPED: 2,
+                  OUT_FOR_DELIVERY: 3,
+                  DELIVERED: 4,
+                  CANCELLED: 5,
+                  RETURNED: 6
+                };
+
+                // If order is cancelled, only show CONFIRMED and CANCELLED steps
+                let filteredSteps = order?.trackingSteps || [];
+
+                if (order?.status === "CANCELLED") {
+                  filteredSteps = filteredSteps.filter(
+                    (step: any) =>
+                      step.status?.toUpperCase() === "CONFIRMED" ||
+                      step.status?.toUpperCase() === "CANCELLED"
+                  );
+                } else {
+                  // For non-cancelled orders, filter out CANCELLED status
+                  filteredSteps = filteredSteps.filter(
+                    (step: any) => step.status?.toUpperCase() !== "CANCELLED"
+                  );
+                }
+
+                const sortedSteps = [...filteredSteps].sort(
+                  (a: any, b: any) => {
+                    const orderA = statusOrder[a.status?.toUpperCase()] ?? 999;
+                    const orderB = statusOrder[b.status?.toUpperCase()] ?? 999;
+                    return orderA - orderB;
+                  }
+                );
+
+                return sortedSteps.map((step: any, index: number) => {
+                  const isCancelled =
+                    step.status?.toUpperCase() === "CANCELLED";
+
+                  return (
                     <div
-                      key={step.status}
-                      className="flex items-center space-x-4">
+                      key={`${step.status}-${index}`}
+                      className="flex items-center space-x-4 relative">
                       <div className="flex-shrink-0">
                         {getStatusIcon(step.status, step.completed)}
                       </div>
@@ -370,35 +435,51 @@ export default function OrderTrackingPage() {
                         <div className="flex items-center justify-between">
                           <h3
                             className={`font-semibold ${
-                              step.completed
+                              isCancelled
+                                ? "text-red-600"
+                                : step.completed
                                 ? "text-green-600"
                                 : "text-gray-600"
                             }`}>
                             {step.label}
                           </h3>
-                          {step.date && (
-                            <span className="text-sm text-gray-500">
-                              {new Date(Number(step.date)).toLocaleDateString(
-                                "en-IN",
-                                {
+                          <span className="text-sm text-gray-500">
+                            {step.date
+                              ? new Date(Number(step.date)).toLocaleDateString(
+                                  "en-IN",
+                                  {
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    year: "numeric"
+                                  }
+                                )
+                              : step.completed
+                              ? new Date(
+                                  Number(order?.createdAt)
+                                ).toLocaleDateString("en-IN", {
                                   day: "2-digit",
                                   month: "2-digit",
                                   year: "numeric"
-                                }
-                              )}
-                            </span>
-                          )}
+                                })
+                              : "Pending"}
+                          </span>
                         </div>
                       </div>
-                      {index < order.trackingSteps.length - 1 && (
+                      {index < sortedSteps.length - 1 && (
                         <div
                           className={`absolute left-3 mt-8 w-0.5 h-6 ${
-                            step.completed ? "bg-green-600" : "bg-gray-300"
+                            isCancelled
+                              ? "bg-red-600"
+                              : step.completed
+                              ? "bg-green-600"
+                              : "bg-gray-300"
                           }`}
                         />
                       )}
                     </div>
-                  ))}
+                  );
+                });
+              })()}
             </div>
 
             {/* {order.status === "shipped" && (
@@ -503,7 +584,6 @@ export default function OrderTrackingPage() {
               <div className="flex justify-between">
                 <span>Order Date:</span>
                 <span>
-                  {" "}
                   {new Date(Number(order?.createdAt)).toLocaleDateString(
                     "en-IN",
                     {
@@ -518,29 +598,51 @@ export default function OrderTrackingPage() {
                 <span>Payment Method:</span>
                 <span>{order?.paymentMethod}</span>
               </div>
-              <div className="flex justify-between">
-                <span>Transaction ID:</span>
-                {/* <span className="text-sm">{order.payment.transactionId}</span> */}
-              </div>
             </div>
 
             <div className="border-t pt-4 space-y-3 mb-4">
-              <div className="flex justify-between">
-                <span>Subtotal:</span>
-                <span>₹{order?.totalAmount}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Shipping:</span>
-                {/* <span>
-                  {order.pricing.shipping === 0
-                    ? "FREE"
-                    : `$${order.pricing.shipping}`}
-                </span> */}
-              </div>
-              <div className="flex justify-between">
-                <span>Tax:</span>
-                {/* <span>${order.pricing.tax}</span> */}
-              </div>
+              {/* Calculate subtotal from order items */}
+              {(() => {
+                const subtotal =
+                  order?.orderItems?.reduce(
+                    (sum: number, item: any) =>
+                      sum + item.price * item.quantity,
+                    0
+                  ) || 0;
+                const deliveryCharges = order?.paymentMethod === "COD" ? 49 : 0;
+                const discountAmount = order?.discountAmount || 0;
+                const total = subtotal + deliveryCharges - discountAmount;
+
+                return (
+                  <>
+                    <div className="flex justify-between">
+                      <span>
+                        Price (
+                        {order?.orderItems?.reduce(
+                          (sum: number, item: any) => sum + item.quantity,
+                          0
+                        ) || 0}{" "}
+                        items)
+                      </span>
+                      <span>₹{subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Delivery Charges</span>
+                      <span>
+                        {deliveryCharges === 0
+                          ? "FREE"
+                          : `₹${deliveryCharges.toFixed(2)}`}
+                      </span>
+                    </div>
+                    {discountAmount > 0 && (
+                      <div className="flex justify-between text-green-600">
+                        <span>Discount</span>
+                        <span>-₹{discountAmount.toFixed(2)}</span>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
 
             <div className="border-t pt-3 mb-6">

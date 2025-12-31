@@ -201,6 +201,12 @@ export const GET_ORDERS = gql`
         pincode
         mobile
       }
+      trackingSteps {
+        status
+        label
+        date
+        completed
+      }
     }
   }
 `;
