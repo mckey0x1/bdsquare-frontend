@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
 
 type ReturnOrderModalProps = {
   orderId: string;
@@ -13,7 +12,6 @@ export default function ReturnOrderModal({
   orderId,
   onReturn
 }: ReturnOrderModalProps) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [customReason, setCustomReason] = useState("");
@@ -31,8 +29,6 @@ export default function ReturnOrderModal({
       setOpen(false);
       setReason("");
       setCustomReason("");
-      // Navigate to return tracking page
-      router.push(`/returns/${orderId}`);
     } catch (err: any) {
       setError(err?.message || "Failed to return order");
     } finally {

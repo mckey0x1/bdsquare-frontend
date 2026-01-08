@@ -385,32 +385,19 @@ export default function OrderTrackingPage() {
             <div className="space-y-6">
               {(() => {
                 // Sort tracking steps by their order: PENDING -> CONFIRMED -> SHIPPED -> OUT_FOR_DELIVERY -> DELIVERED
-                // If order is cancelled, show: CONFIRMED -> CANCELLED
                 const statusOrder: { [key: string]: number } = {
                   PENDING: 0,
                   CONFIRMED: 1,
                   SHIPPED: 2,
                   OUT_FOR_DELIVERY: 3,
                   DELIVERED: 4,
-                  CANCELLED: 5,
                   RETURNED: 6
                 };
 
-                // If order is cancelled, only show CONFIRMED and CANCELLED steps
-                let filteredSteps = order?.trackingSteps || [];
-
-                if (order?.status === "CANCELLED") {
-                  filteredSteps = filteredSteps.filter(
-                    (step: any) =>
-                      step.status?.toUpperCase() === "CONFIRMED" ||
-                      step.status?.toUpperCase() === "CANCELLED"
-                  );
-                } else {
-                  // For non-cancelled orders, filter out CANCELLED status
-                  filteredSteps = filteredSteps.filter(
-                    (step: any) => step.status?.toUpperCase() !== "CANCELLED"
-                  );
-                }
+                // Filter out CANCELLED status from tracking steps
+                const filteredSteps = (order?.trackingSteps || []).filter(
+                  (step: any) => step.status?.toUpperCase() !== "CANCELLED"
+                );
 
                 const sortedSteps = [...filteredSteps].sort(
                   (a: any, b: any) => {
@@ -420,65 +407,42 @@ export default function OrderTrackingPage() {
                   }
                 );
 
-                return sortedSteps.map((step: any, index: number) => {
-                  const isCancelled =
-                    step.status?.toUpperCase() === "CANCELLED";
-
-                  return (
-                    <div
-                      key={`${step.status}-${index}`}
-                      className="flex items-center space-x-4 relative">
-                      <div className="flex-shrink-0">
-                        {getStatusIcon(step.status, step.completed)}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <h3
-                            className={`font-semibold ${
-                              isCancelled
-                                ? "text-red-600"
-                                : step.completed
-                                ? "text-green-600"
-                                : "text-gray-600"
-                            }`}>
-                            {step.label}
-                          </h3>
-                          <span className="text-sm text-gray-500">
-                            {step.date
-                              ? new Date(Number(step.date)).toLocaleDateString(
-                                  "en-IN",
-                                  {
-                                    day: "2-digit",
-                                    month: "2-digit",
-                                    year: "numeric"
-                                  }
-                                )
-                              : step.completed
-                              ? new Date(
-                                  Number(order?.createdAt)
-                                ).toLocaleDateString("en-IN", {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                  year: "numeric"
-                                })
-                              : "Pending"}
-                          </span>
-                        </div>
-                      </div>
-                      {index < sortedSteps.length - 1 && (
-                        <div
-                          className={`absolute left-3 mt-8 w-0.5 h-6 ${
-                            isCancelled
-                              ? "bg-red-600"
-                              : step.completed
-                              ? "bg-green-600"
-                              : "bg-gray-300"
-                          }`}
-                        />
-                      )}
+                return sortedSteps.map((step: any, index: number) => (
+                  <div
+                    key={`${step.status}-${index}`}
+                    className="flex items-center space-x-4 relative">
+                    <div className="flex-shrink-0">
+                      {getStatusIcon(step.status, step.completed)}
                     </div>
-                  );
-                });
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h3
+                          className={`font-semibold ${
+                            step.completed ? "text-green-600" : "text-gray-600"
+                          }`}>
+                          {step.label}
+                        </h3>
+                        <span className="text-sm text-gray-500">
+                          {step.date ? new Date(Number(step.date)).toLocaleDateString(
+                            "en-IN",
+                            {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric"
+                            }
+                          ) : "Pending"}
+                        </span>
+                      </div>
+                    </div>
+                    {index < sortedSteps.length - 1 && (
+                      <div
+                        className={`absolute left-3 mt-8 w-0.5 h-6 ${
+                          step.completed ? "bg-green-600" : "bg-gray-300"
+                        }`}
+                      />
+                    )}
+                  </div>
+                ));
               })()}
             </div>
 

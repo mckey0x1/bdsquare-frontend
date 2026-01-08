@@ -12,11 +12,21 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { Plus, Search, Edit, Trash2, Eye, EyeOff } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Edit,
+  Trash2,
+  Eye,
+  EyeOff,
+  DollarSign
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import CubeSpinner from "@/components/cube-loader";
+import { Label } from "@/components/ui/label";
+import { CardHeader, CardTitle } from "@/components/ui/card";
 
 // ✅ Modal stays unchanged
 function ConfirmDeleteModal({ open, onClose, onConfirm }: any) {
@@ -54,8 +64,18 @@ const getImageForColor = (images: any[], color: string) => {
   return colorImages?.urls[0] || images[0]?.urls[0] || "/placeholder.jpg";
 };
 
+const categories = [
+  "T-shirts",
+  "Hoodies",
+  "Caps",
+  "Jeans",
+  "Jackets",
+  "Accessories"
+];
+
 export default function ProductsPage() {
-  const { products, deleteProduct } = useAuth();
+  const { products, deleteProduct, bulkUpdateProductPricesByCategory } =
+    useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -64,6 +84,13 @@ export default function ProductsPage() {
   const [selectedColors, setSelectedColors] = useState<Record<string, string>>(
     {}
   );
+  const [bulkUpdateOpen, setBulkUpdateOpen] = useState(false);
+  const [bulkUpdateForm, setBulkUpdateForm] = useState({
+    category: "",
+    price: "",
+    originalPrice: ""
+  });
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
 
   const handleDelete = (productId: string) => {
     setSelectedProductId(productId);
@@ -100,6 +127,38 @@ export default function ProductsPage() {
   // ✅ Helper to extract unique values
   const getUnique = (arr: string[]) => [...new Set(arr)];
 
+  const handleBulkUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bulkUpdateForm.category) {
+      alert("Please select a category");
+      return;
+    }
+    if (!bulkUpdateForm.price && !bulkUpdateForm.originalPrice) {
+      alert("Please provide at least one price (Price or Original Price)");
+      return;
+    }
+
+    setIsBulkUpdating(true);
+    try {
+      const result = await bulkUpdateProductPricesByCategory(
+        bulkUpdateForm.category,
+        bulkUpdateForm.price ? parseFloat(bulkUpdateForm.price) : undefined,
+        bulkUpdateForm.originalPrice
+          ? parseFloat(bulkUpdateForm.originalPrice)
+          : undefined
+      );
+
+      if (result.success) {
+        setBulkUpdateForm({ category: "", price: "", originalPrice: "" });
+        setBulkUpdateOpen(false);
+      }
+    } catch (error) {
+      console.error("Bulk update error:", error);
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
   if (!products) return <CubeSpinner />;
 
   return (
@@ -116,6 +175,112 @@ export default function ProductsPage() {
           </Button>
         </Link>
       </div>
+
+      {/* Bulk Price Update Form */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              Bulk Update Prices by Category
+            </CardTitle>
+            <Button
+              variant="outline"
+              onClick={() => setBulkUpdateOpen(!bulkUpdateOpen)}
+              size="sm">
+              {bulkUpdateOpen ? "Hide" : "Show"} Form
+            </Button>
+          </div>
+        </CardHeader>
+        {bulkUpdateOpen && (
+          <CardContent className="p-6">
+            <form onSubmit={handleBulkUpdate} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="bulk-category">Category *</Label>
+                  <Select
+                    value={bulkUpdateForm.category}
+                    onValueChange={(value) =>
+                      setBulkUpdateForm({ ...bulkUpdateForm, category: value })
+                    }>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="bulk-price">Price (₹)</Label>
+                  <Input
+                    id="bulk-price"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Enter new price"
+                    value={bulkUpdateForm.price}
+                    onChange={(e) =>
+                      setBulkUpdateForm({
+                        ...bulkUpdateForm,
+                        price: e.target.value
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="bulk-original-price">
+                    Original Price (₹)
+                  </Label>
+                  <Input
+                    id="bulk-original-price"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Enter original price"
+                    value={bulkUpdateForm.originalPrice}
+                    onChange={(e) =>
+                      setBulkUpdateForm({
+                        ...bulkUpdateForm,
+                        originalPrice: e.target.value
+                      })
+                    }
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button type="submit" disabled={isBulkUpdating}>
+                  {isBulkUpdating
+                    ? "Updating..."
+                    : "Update All Products in Category"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setBulkUpdateForm({
+                      category: "",
+                      price: "",
+                      originalPrice: ""
+                    });
+                    setBulkUpdateOpen(false);
+                  }}>
+                  Cancel
+                </Button>
+              </div>
+              <p className="text-sm text-gray-500">
+                This will update the price and/or original price for all
+                products in the selected category. Leave a field empty if you
+                don't want to update it.
+              </p>
+            </form>
+          </CardContent>
+        )}
+      </Card>
 
       {/* Filters */}
       <Card>

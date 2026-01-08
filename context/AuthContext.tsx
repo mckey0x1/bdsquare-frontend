@@ -33,7 +33,8 @@ import {
   CONFIRM_ONLINE_ORDER,
   CANCEL_ORDER,
   RETURN_ORDER,
-  WRITE_REVIEW
+  WRITE_REVIEW,
+  BULK_UPDATE_PRODUCT_PRICES_BY_CATEGORY
 } from "@/graphql/mutation/mutations";
 import {
   ME_QUERY,
@@ -93,6 +94,11 @@ interface AuthContextType {
   orders: any[];
   allOrders: any[];
   submitReview: (newReview: any, productId: string) => Promise<void>;
+  bulkUpdateProductPricesByCategory: (
+    category: string,
+    price?: number,
+    originalPrice?: number
+  ) => Promise<{ success: boolean; message: string; updatedCount: number }>;
 }
 
 import LoadingOverlay from "@/components/LoadingOverlay";
@@ -140,6 +146,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [cancelOrderMutation] = useMutation(CANCEL_ORDER);
   const [returnOrderMutation] = useMutation(RETURN_ORDER);
   const [writeReviewMutation] = useMutation(WRITE_REVIEW);
+  const [bulkUpdateProductPricesMutation] = useMutation(BULK_UPDATE_PRODUCT_PRICES_BY_CATEGORY);
 
   function generateRandomId(length: number): string {
     const characters =
@@ -363,6 +370,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await deleteProductMutation({ variables: { id } });
     toast.success("Product deleted successfully!");
     setRandomId(generateRandomId(6));
+  };
+
+  const bulkUpdateProductPricesByCategory = async (
+    category: string,
+    price?: number,
+    originalPrice?: number
+  ): Promise<{ success: boolean; message: string; updatedCount: number }> => {
+    try {
+      setOverlayLoading(true);
+      const { data } = await bulkUpdateProductPricesMutation({
+        variables: {
+          category,
+          price: price !== undefined ? price : null,
+          originalPrice: originalPrice !== undefined ? originalPrice : null
+        },
+        refetchQueries: [{ query: GET_PRODUCTS }]
+      });
+
+      const result = data.bulkUpdateProductPricesByCategory;
+      setOverlayLoading(false);
+      
+      if (result.success) {
+        toast.success(result.message);
+        setRandomId(generateRandomId(6));
+      } else {
+        toast.error(result.message);
+      }
+
+      return result;
+    } catch (error: any) {
+      setOverlayLoading(false);
+      const errorMessage = error.message || "Failed to update product prices";
+      toast.error(errorMessage);
+      return {
+        success: false,
+        message: errorMessage,
+        updatedCount: 0
+      };
+    }
   };
 
   const UpdateProducts = async (formData: any, productId: string) => {
@@ -824,7 +870,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         cancelorder,
         returnOrder,
         submitReview,
-        allOrders
+        allOrders,
+        bulkUpdateProductPricesByCategory
       }}>
       <Toaster />
       <Script

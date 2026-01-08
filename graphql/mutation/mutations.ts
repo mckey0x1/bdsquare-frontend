@@ -448,3 +448,21 @@ export const DELETE_COUPON_MUTATION = gql`
     }
   }
 `;
+
+export const BULK_UPDATE_PRODUCT_PRICES_BY_CATEGORY = gql`
+  mutation BulkUpdateProductPricesByCategory(
+    $category: String!
+    $price: Float
+    $originalPrice: Float
+  ) {
+    bulkUpdateProductPricesByCategory(
+      category: $category
+      price: $price
+      originalPrice: $originalPrice
+    ) {
+      success
+      message
+      updatedCount
+    }
+  }
+`;
